@@ -1,4 +1,4 @@
-uuid = require("uuid").generate
+uuid = require("node-uuid").v4
 http = require "http"
 url  = require "url"
 qs   = require "querystring"
