@@ -75,7 +75,7 @@ authCallback = (req, res) ->
 
   query =
     grant_type: "authorization_code"
-    client_id: CLIENT_ID
+    client_id: parts.query.client_id
     client_secret: CLIENT_SECRET
     redirect_uri: "#{PROXY_DOMAIN}/callback?callback_id=#{callback_id}"
     scope:"non-expiring"
