@@ -32,7 +32,6 @@ proxy = (serverRequest, serverResponse) ->
     host: API_HOST
     path: url.format(pathname: pathname, query: query)
     method: serverRequest.method
-    headers: serverRequest.headers
 
   clientRequest = http.request options, (clientResponse) ->
     # Should probably use a Buffer here.
@@ -48,6 +47,11 @@ proxy = (serverRequest, serverResponse) ->
 
       serverResponse.writeHead clientResponse.statusCode
       serverResponse.end body
+
+  for own key, value of serverRequest.headers
+    if key != 'host'
+      key = key.replace /^[a-z]|\-[a-z]/g, (_) -> _.toUpperCase()
+      clientRequest.setHeader key, value
 
   serverRequest.on "data", clientRequest.write.bind(clientRequest)
   serverRequest.on "end",  clientRequest.end.bind(clientRequest)
