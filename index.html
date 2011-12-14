@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Readmill Annotator Plugin</title>
+</head>
+<body>
+  <a href="#" id="connect">Connect with Readmill</a>
+  <script src="./lib/vendor/jquery.js"></script>
+  <script src="./lib/vendor/annotator.js"></script>
+  <script src="./lib/annotator.readmill.js"></script>
+  <script>
+    var connect = document.getElementById('connect'),
+        token   = window.localStorage && window.localStorage['readmill-access-token'];
+
+    if (token) {
+      connect.innerHTML = 'Authenticated!';
+    }
+
+    connect.onclick = function () {
+      if (token) {
+        return false;
+      }
+
+      (new Annotator.Plugin.Readmill.Auth({
+        clientId:     "454f5cfd1e794930c6fa99a94faad810",
+        callbackUri:  "http://aron.github.com/annotator.readmill.js/callback.html",
+        authEndpoint: "http://roxy.aroncarroll.com"
+      }))
+      .connect()
+      .done(function success(params) {
+        connect.innerHTML = 'Succeeded: ' + params.access_token;
+        window.localStorage['readmill-access-token'] = params.access_token;
+      })
+      .fail(function (error) {
+        connect.innerHTML = 'Failed to connect: ' + error;
+      });
+      connect.innerHTML = 'Connecting...';
+
+      return false;
+    };
+  </script>
+</body>
+</html>
