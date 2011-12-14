@@ -34,12 +34,20 @@ proxy = (serverRequest, serverResponse) ->
     method: serverRequest.method
     headers: serverRequest.headers
 
-  delete options.headers.host
-
   clientRequest = http.request options, (clientResponse) ->
-    serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
-    clientResponse.on "data", serverResponse.write.bind(serverResponse)
-    clientResponse.on "end",  serverResponse.end.bind(serverResponse)
+    # Should probably use a Buffer here.
+    body = ""
+
+    clientResponse.on "data", (data) -> body += data
+    clientResponse.on "end", ->
+      serverResponse.setHeader 'Content-Length', body.length
+      for own key, value of clientResponse.headers
+        if key != 'transfer-encoding'
+          key = key.replace /^[a-z]|\-[a-z]/g, (_) -> _.toUpperCase()
+          serverResponse.setHeader key, value
+
+      serverResponse.writeHead clientResponse.statusCode
+      serverResponse.end body
 
   serverRequest.on "data", clientRequest.write.bind(clientRequest)
   serverRequest.on "end",  clientRequest.end.bind(clientRequest)
