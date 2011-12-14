@@ -6,9 +6,11 @@ qs   = require "querystring"
 API_HOST      = "api.readmill.com"
 AUTH_HOST     = "readmill.com"
 PROXY_DOMAIN  = process.env["PROXY_DOMAIN"]
+CLIENT_ID = process.env["READMILL_CLIENT_ID"]
 CLIENT_SECRET = process.env["READMILL_CLIENT_SECRET"]
 
 throw "Requires PROXY_DOMAIN environment variable" unless PROXY_DOMAIN
+throw "Requires READMILL_CLIENT_ID environment variable" unless CLIENT_ID
 throw "Requires READMILL_CLIENT_SECRET environment variable" unless CLIENT_SECRET
 
 callbacks = {}
@@ -75,7 +77,7 @@ authCallback = (req, res) ->
 
   query =
     grant_type: "authorization_code"
-    client_id: parts.query.client_id
+    client_id: CLIENT_ID
     client_secret: CLIENT_SECRET
     redirect_uri: "#{PROXY_DOMAIN}/callback?callback_id=#{callback_id}"
     scope:"non-expiring"
