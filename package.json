@@ -1,0 +1,10 @@
+{
+  "name": "annotator.readmill.js",
+  "private": true,
+  "version": "0.0.1dev",
+  "description": "Annotate books with Annotator and Readmill",
+  "dependencies": {
+    "coffee-script": "1.1.1",
+    "uuid": "0.0.2"
+  }
+}
