@@ -21,7 +21,7 @@ decorateWithCORS = (res) ->
     "Access-Control-Allow-Methods": "HEAD, GET, POST, PUT, DELETE"
     "Access-Control-Max-Age": 60 * 60
     "Access-Control-Allow-Credentials": false
-    "Access-Control-Allow-Headers": "",
+    "Access-Control-Allow-Headers": "Origin, Content-Type, Accept"
     "Access-Control-Expose-Headers": "Location"
 
   res.setHeader(key, value) for own key, value of headers
