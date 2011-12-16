@@ -4637,11 +4637,13 @@
   <script src="./lib/vendor/annotator.js"></script>
   <script src="./lib/annotator.readmill.js"></script>
   <script>
-    jQuery('#book').annotator().annotator('addPlugin', 'Readmill', {
+    var annotator = jQuery('#book').annotator().annotator('addPlugin', 'Readmill', {
+      book: {id: ""},
       clientId: "",
-      callbackUri: "",
+      callbackUri:  "",
+      apiEndpoint:  "",
       authEndpoint: ""
-    });
+    }).data('annotator');
   </script>
 </body>
 </html>

@@ -1,26 +1,50 @@
 class Readmill extends Annotator.Plugin
   @API_ENDPOINT: "http://localhost:8000"
 
-  constructor: (options) ->
-    super {}, options
+  events:
+    "annotationCreated": "_onAnnotationCreated"
+    "annotationUpdated": "_onAnnotationUpdated"
+    "annotationDeleted": "_onAnnotationDeleted"
 
-    @auth  = new Readmill.Auth @options
-    @store = new Readmill.Store
+  constructor: (options) ->
+    super
+
+    @book   = @options.book
+    @auth   = new Readmill.Auth @options
+    @store  = new Readmill.Store
+    @client = new Readmill.Client @options
 
     token = options.accessToken || @store.get "access-token"
-    @connected(token) if token
+    @connected(token, silent: true) if token
+    @unsaved = []
 
   connect: ->
     @auth.connect().then @_onConnectSuccess, @_onConnectError
 
-  connected: (accessToken) ->
-    @client = new Readmill.Client(accessToken: accessToken)
+  connected: (accessToken, options) ->
+    @client.authorize accessToken
     @store.set "access-token", accessToken
+
+    unless options?.silent is true
+      Annotator.showNotification "Successfully connected to Readmill"
 
   _onConnectSuccess: (params) =>
     @connected(params.access_token)
 
   _onConnectError: (error) =>
+    Annotator.showNotification error, Annotator.Notification.ERROR
+
+  _onAnnotationCreated: (annotation) =>
+    if @client.isAuthorized() and @book.id
+      @client.createHighlight()
+    else
+      @unsaved.push annotation
+      @connect() unless @client.isAuthorized()
+
+  _onAnnotationUpdated: (annotation) =>
+
+  _onAnnotationDeleted: (annotation) =>
+    
 
 utils =
   serializeQueryString: (obj, sep="&", eq="=") ->
@@ -36,7 +60,46 @@ utils =
     obj
 
 class Client
-  fetchMe: ->
+  @API_ENDPOINT: "http://api.readmill.com"
+
+  constructor: (options) ->
+    {@clientId, @accessToken, @apiEndpoint} = options
+    @apiEndpoint = Client.API_ENDPOINT unless @apiEndpoint
+
+  me: ->
+    @request
+      url: "#{@apiEndpoint}/me"
+      type: "GET"
+      data: {access_token: @accessToken}
+
+  matchBook: (data) ->
+    @request
+      url: "#{@apiEndpoint}/books/match"
+      type: "GET"
+      data: client_id: @clientId, q: data
+
+  createBook: (data) ->
+    @request
+      url: "#{@apiEndpoint}/books?access_token=#{@accessToken}"
+      type: "POST"
+      dataType: "json",
+      contentType: "application/json"
+      data: JSON.stringify(book: data)
+
+  createHighlight: ->
+    @request
+      type: "POST"
+
+  updateHighlight: ->
+
+  deleteHighlight: ->
+
+  request: (options) ->
+    jQuery.ajax options
+
+  authorize: (@accessToken) ->
+
+  isAuthorized: -> !!@accessToken
 
 class Store
   @KEY_PREFIX: "annotator.readmill/"
