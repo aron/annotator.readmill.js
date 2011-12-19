@@ -9,6 +9,7 @@ class Readmill extends Annotator.Plugin
   constructor: (options) ->
     super
 
+    @user   = null
     @book   = @options.book
     @auth   = new Readmill.Auth @options
     @store  = new Readmill.Store
@@ -18,21 +19,60 @@ class Readmill extends Annotator.Plugin
     @connected(token, silent: true) if token
     @unsaved = []
 
+  lookupBook: ->
+    @book.deferred = @client.matchBook @book unless @book.deferred
+
+  lookupReading: ->
+    @lookupBook() unless @book.id
+    jQuery.when(@book.deferred).then =>
+      data = {state: Readmill.Client.READING_STATE_OPEN}
+      request = @client.createReadingForBook @book.id, data
+      request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
+
   connect: ->
     @auth.connect().then @_onConnectSuccess, @_onConnectError
 
   connected: (accessToken, options) ->
     @client.authorize accessToken
-    @store.set "access-token", accessToken
+    @client.me().then @_onMeSuccess, @_onMeError
+    @store.set "access-token", accessToken, options.expires
 
     unless options?.silent is true
       Annotator.showNotification "Successfully connected to Readmill"
 
+  error: (message) ->
+    Annotator.showNotification message, Annotator.Notification.ERROR
+
   _onConnectSuccess: (params) =>
-    @connected(params.access_token)
+    @connected params.access_token, params
 
   _onConnectError: (error) =>
-    Annotator.showNotification error, Annotator.Notification.ERROR
+    @error error
+
+  _onMeSuccess: (data) =>
+    @user = data
+    @lookupReading()
+
+  _onMeError: () =>
+    @error "Unable to fetch user info from Readmill"
+
+  _onCreateReadingSuccess: (body, status, jqXHR) =>
+    location = jqXHR.getResponseHeader "Location"
+    location = location.replace /http:\/\/[^\/]+/, ""
+
+    request = @client.request(url: location, type: "GET")
+    request.then @_onGetReadingSuccess, @_onGetReadingError
+
+  _onCreateReadingError: (jqXHR) =>
+    if jqXHR.status == 409
+      location = jqXHR.getResponseHeader "Location"
+      @_onCreateReadingSuccess(null, null, jqXHR)
+
+  _onGetReadingSuccess: (reading) =>
+    @book.reading = reading
+
+  _onGetReadingError: (reading) =>
+    @error "Unable to create reading for this book"
 
   _onAnnotationCreated: (annotation) =>
     if @client.isAuthorized() and @book.id
@@ -60,42 +100,69 @@ utils =
     obj
 
 class Client
-  @API_ENDPOINT: "http://api.readmill.com"
+  @API_ENDPOINT: "https://api.readmill.com"
+
+  @READING_STATE_INTERESTING: 1
+  @READING_STATE_OPEN: 2,
+  @READING_STATE_FINISHED: 3
+  @READING_STATE_ABANDONED: 4
 
   constructor: (options) ->
     {@clientId, @accessToken, @apiEndpoint} = options
     @apiEndpoint = Client.API_ENDPOINT unless @apiEndpoint
 
   me: ->
-    @request
-      url: "#{@apiEndpoint}/me"
-      type: "GET"
-      data: {access_token: @accessToken}
+    @request url: "/me", type: "GET"
 
   matchBook: (data) ->
-    @request
-      url: "#{@apiEndpoint}/books/match"
-      type: "GET"
-      data: client_id: @clientId, q: data
+    @request url: "/books/match", type: "GET", data: {q: data}
 
   createBook: (data) ->
-    @request
-      url: "#{@apiEndpoint}/books?access_token=#{@accessToken}"
-      type: "POST"
-      dataType: "json",
-      contentType: "application/json"
-      data: JSON.stringify(book: data)
+    @request url: "/books", type: "POST", data: {book: data}
+
+  createReadingForBook: (bookId, data) ->
+    @request type: "POST", url: "/books/#{bookId}/readings", data: {reading: data}
+
+  getHighlights: (url) ->
+    @request url: url, type: "GET"
 
   createHighlight: ->
-    @request
-      type: "POST"
+    @request type: "POST"
 
   updateHighlight: ->
 
   deleteHighlight: ->
 
-  request: (options) ->
-    jQuery.ajax options
+  request: (options={}) ->
+    xhr = null
+
+    if options.url.indexOf("http") != 0
+      options.url = "#{@apiEndpoint}#{options.url}"
+
+    if options.type.toUpperCase() of {"POST", "PUT", "DELETE"}
+      options.url = "#{options.url}?&client_id=#{@clientId}"
+      options.data = JSON.stringify(options.data) if options.data
+      options.dataType = "json"
+      options.contentType = "application/json"
+    else
+      options.data = jQuery.extend {client_id: @clientId}, options.data or {}
+
+    options.beforeSend = (jqXHR) =>
+      jqXHR.setRequestHeader "Accept", "application/json"
+      jqXHR.setRequestHeader "Authorization", "OAuth #{@accessToken}" if @accessToken
+
+    # jQuery's getResponseHeader() method is broken in Firefox when it comes
+    # to accessing CORS headers as it uses the getAllResponseHeaders method
+    # which returns an empty string. So here we provide our own xhr factory to
+    # the jQuery settings and keep a reference to the original XHR object
+    # we then monkey patch the getResponseHeader() to use the native one.
+    # See: http://bugs.jquery.com/ticket/10338
+    options.xhr = -> xhr = jQuery.ajaxSettings.xhr()
+
+    request = jQuery.ajax options
+    request.xhr = xhr
+    request.getResponseHeader = (header) -> xhr.getResponseHeader(header)
+    request
 
   authorize: (@accessToken) ->
 
