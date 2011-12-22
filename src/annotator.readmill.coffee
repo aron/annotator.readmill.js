@@ -57,16 +57,16 @@ class Readmill extends Annotator.Plugin
     @error "Unable to fetch user info from Readmill"
 
   _onCreateReadingSuccess: (body, status, jqXHR) =>
-    location = jqXHR.getResponseHeader "Location"
-    location = location.replace /http:\/\/[^\/]+/, ""
+    {location} = JSON.parse jqXHR.responseText
 
-    request = @client.request(url: location, type: "GET")
-    request.then @_onGetReadingSuccess, @_onGetReadingError
+    if location
+      request = @client.request(url: location, type: "GET")
+      request.then @_onGetReadingSuccess, @_onGetReadingError
+    else
+      @_onGetReadingError()
 
   _onCreateReadingError: (jqXHR) =>
-    if jqXHR.status == 409
-      location = jqXHR.getResponseHeader "Location"
-      @_onCreateReadingSuccess(null, null, jqXHR)
+    @_onCreateReadingSuccess(null, null, jqXHR) if jqXHR.status == 409
 
   _onGetReadingSuccess: (reading) =>
     @book.reading = reading
@@ -148,6 +148,8 @@ class Client
       options.data = jQuery.extend {client_id: @clientId}, options.data or {}
 
     options.beforeSend = (jqXHR) =>
+      # Set the X-Response header to return the Location header in the body.
+      jqXHR.setRequestHeader "X-Response", "Body"
       jqXHR.setRequestHeader "Accept", "application/json"
       jqXHR.setRequestHeader "Authorization", "OAuth #{@accessToken}" if @accessToken
 
