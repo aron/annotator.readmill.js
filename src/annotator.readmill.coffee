@@ -75,25 +75,34 @@ class Readmill extends Annotator.Plugin
       highlighted_at: undefined
     }
 
-  _annotationFromHighlight: (highlight) ->
-    ranges = try JSON.parse(highlight.pre) catch e then null
-    if ranges
-      {
-        quote: highlight.content
-        text: ""
-        ranges: ranges
-        highlightUrl: highlight.uri
-        commentUrl: ""
-      }
-    else
-      null
-
   _commentFromAnnotation: (annotation) ->
     # Documentation seems to indicate this should be wrapped in an object
     # with a "content" property but that does not seem to work with the
     # POST /highlights API.
     # See: https://github.com/Readmill/API/wiki/Readings
     {content: annotation.text}
+
+  _annotationFromHighlight: (highlight) ->
+    ranges = try JSON.parse(highlight.pre) catch e then null
+
+    if ranges
+      deferred = new jQuery.Deferred()
+      deferred.annotation = annotation =
+        quote: highlight.content
+        text: ""
+        ranges: ranges
+        highlightUrl: highlight.uri
+        commentUrl: ""
+
+      @client.request(url: highlight.comments).error(deferred.reject).done (comments) ->
+        if comments.length
+          annotation.text = comments[0].content
+          annotation.commentUrl = comments[0].uri
+        deferred.resolve annotation
+
+      deferred.promise()
+    else
+      null
 
   _onConnectSuccess: (params) =>
     @connected params.access_token, params
@@ -135,11 +144,13 @@ class Readmill extends Annotator.Plugin
     @error "Unable to create reading for this book"
 
   _onGetHighlightsSuccess: (highlights) =>
-    annotations = jQuery.map highlights, jQuery.proxy(this, "_annotationFromHighlight")
+    deferreds = jQuery.map highlights, jQuery.proxy(this, "_annotationFromHighlight")
 
     # Filter out unparsable annotations.
-    annotations = jQuery.grep annotations, (ann) -> !!ann
-    @annotator.loadAnnotations annotations 
+    deferreds = jQuery.grep deferreds, (def) -> !!def
+    jQuery.when.apply(jQuery, deferreds).done =>
+      annotations = jQuery.makeArray(arguments)
+      @annotator.loadAnnotations annotations
 
   _onGetHighlightsError: => @error "Unable to fetch highlights for reading"
 
@@ -157,7 +168,7 @@ class Readmill extends Annotator.Plugin
     if @client.isAuthorized() and @book.id
       url = @book.reading.highlights
 
-      # Need a txt string here rather than an object here for some reason.
+      # Need a text string here rather than an object here for some reason.
       comment = @_commentFromAnnotation(annotation).content
       highlight = @_highlightFromAnnotation annotation
 
