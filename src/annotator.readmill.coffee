@@ -18,6 +18,8 @@ class Readmill extends Annotator.Plugin
     @store  = new Readmill.Store
     @client = new Readmill.Client @options
 
+    @view.subscribe "connect", @connect
+
     token = options.accessToken || @store.get "access-token"
     @connected(token, silent: true) if token
     @unsaved = []
@@ -44,7 +46,7 @@ class Readmill extends Annotator.Plugin
       request = @client.createReadingForBook @book.id, data
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
 
-  connect: ->
+  connect: =>
     @auth.connect().then @_onConnectSuccess, @_onConnectError
 
   connected: (accessToken, options) ->
@@ -123,6 +125,10 @@ utils =
     obj
 
 class View extends Annotator.Plugin
+  events:
+    ".annotator-readmill-connect a click": "_onConnectClick"
+    ".annotator-readmill-logout a click":  "_onLogoutClick"
+
   classes:
     loggedIn: "annotator-readmill-logged-in"
 
@@ -148,32 +154,50 @@ class View extends Annotator.Plugin
   constructor: () ->
     super jQuery(@template)
 
+  connect: ->
+    this.publish "connect", this
+
   login: (user) ->
     @updateUser(user) if user
     @element.addClass @classes.loggedIn
     this
 
-  logout: () ->
-    @element = @element.replaceWith jQuery(@template)
+  logout: ->
+    newElement = jQuery(@template)
+
+    @element.replaceWith newElement
+    @element = newElement
+
+    @user = null
+    @updateBook @book
+
+    this.publish "disconnect", this
+
+  updateUser: (@user=@user) ->
+    if @user
+      @element.find(".annotator-readmill-fullname").escape(@user.fullname)
+      @element.find(".annotator-readmill-username").escape(@user.username)
+      @element.find(".annotator-readmill-avatar").attr("href", @user.permalink_url)
+              .find("img").attr("src", @user.avatar_url)
     this
 
-  updateUser: (user) ->
-    if user
-      @element.find(".annotator-readmill-fullname").escape(user.fullname)
-      @element.find(".annotator-readmill-username").escape(user.username)
-      @element.find(".annotator-readmill-avatar").attr("href", user.permalink_url)
-              .find("img").attr("src", user.avatar_url)
-    this
-
-  updateBook: (book) ->
-    if book
-      @element.find(".annotator-readmill-book").escape(book.title or "Loading book…")
+  updateBook: (@book=@book) ->
+    if @book
+      @element.find(".annotator-readmill-book").escape(@book.title or "Loading book…")
     this
 
   render: ->
     @updateBook()
     @updateUser()
     @element
+
+  _onConnectClick: (event) =>
+    event.preventDefault()
+    this.connect()
+
+  _onLogoutClick: (event) =>
+    event.preventDefault()
+    this.logout()
 
 class Client
   @API_ENDPOINT: "https://api.readmill.com"
