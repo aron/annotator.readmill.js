@@ -1,7 +1,7 @@
 .PHONY: watch proxy serve
 
 watch:
-	coffee -w -o ./lib ./src
+	coffee --watch --output ./lib ./src
 
 proxy:
 	PORT=8000 \
@@ -11,3 +11,7 @@ proxy:
 
 serve:
 	python -m SimpleHTTPServer 8001
+
+build:
+	cat -s src/readmill.coffee src/readmill/*.coffee | \
+	coffee --stdio --print > lib/annotator.readmill.js
