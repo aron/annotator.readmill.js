@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Readmill Annotator Plugin</title>
   <link rel="stylesheet" href="./lib/vendor/annotator.css" media="screen" />
+  <link rel="stylesheet" href="./css/annotator.readmill.css" media="screen" />
   <style type="text/css">
     body { text-align:justify}
     p { margin:15%;
@@ -30,13 +31,14 @@
     .toc       { margin-left: 5%; margin-bottom: .75em; font-size: 80%;}
     .toc2      { margin-left: 5%;}
     center { padding: 10px;}
-    pre    { font-style: italic; font-size: 90%; margin-left: 20%;}
+    pre { font-style: italic; font-size: 90%; margin-left: 20%;}
+    .toggle { font-family: monospace; display: block; font-size: 90%; text-align: center; text-transform: uppercase }
   </style>
 
   
 </head>
 <body>
-  <pre>
+  <pre data-collapsed="Expand License&hellip;" data-expanded="Collapse License&hellip;">
 
   Project Gutenberg's Alice's Adventures in Wonderland, by Lewis Carroll
 
@@ -4268,7 +4270,7 @@
                 THE END
   </pre>
 
-  <pre>
+  <pre data-collapsed="Expand Full License&hellip;" data-expanded="Collapse Full License&hellip;">
   End of Project Gutenberg's Alice's Adventures in Wonderland, by Lewis Carroll
 
   *** END OF THIS PROJECT GUTENBERG EBOOK ALICE'S ADVENTURES IN WONDERLAND ***
@@ -4644,6 +4646,24 @@
       apiEndpoint:  "",
       authEndpoint: ""
     }).data('annotator');
+  </script>
+  <script>
+    jQuery("[data-collapsed]").each(function () {
+      var $element = jQuery(this).hide();
+      var $anchor  = jQuery("<a />", {
+        "href": "#",
+        "text": $element.data("collapsed"),
+        "class": "toggle",
+        "click": function (event) {
+          event.preventDefault();
+          var isHidden = $element.is(":visible");
+          var text = $element.data(isHidden ? "collapsed" : "expanded");
+
+          $element.toggle(!isHidden);
+          $(this).text(text);
+        }
+      }).insertBefore(this);
+    });
   </script>
 </body>
 </html>
