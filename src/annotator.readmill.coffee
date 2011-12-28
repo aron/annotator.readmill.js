@@ -63,6 +63,8 @@ class Readmill extends Annotator.Plugin
   disconnect: =>
     @client.deauthorize()
     @store.remove "access-token"
+    @annotator.element.find(".annotator-hl").each ->
+      jQuery(this).replaceWith this.childNodes
 
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
