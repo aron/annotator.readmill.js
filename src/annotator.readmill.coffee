@@ -1,3 +1,5 @@
+jQuery = Annotator.$
+
 class Readmill extends Annotator.Plugin
   @API_ENDPOINT: "http://localhost:8000"
 
@@ -11,6 +13,7 @@ class Readmill extends Annotator.Plugin
 
     @user   = null
     @book   = @options.book
+    @view   = new Readmill.View
     @auth   = new Readmill.Auth @options
     @store  = new Readmill.Store
     @client = new Readmill.Client @options
@@ -19,8 +22,20 @@ class Readmill extends Annotator.Plugin
     @connected(token, silent: true) if token
     @unsaved = []
 
+  pluginInit: () ->
+    jQuery("body").append @view.render()
+    @lookupBook().done
+
   lookupBook: ->
-    @book.deferred = @client.matchBook @book unless @book.deferred
+    return @book.deferred if @book.deferred
+
+    @book.deferred = if @book.id
+      @client.getBook @book.id
+    else
+      @client.matchBook @book
+
+    @book.deferred.then(@_onBookSuccess, @_onBookError).done =>
+      @view.updateBook @book
 
   lookupReading: ->
     @lookupBook() unless @book.id
@@ -34,7 +49,9 @@ class Readmill extends Annotator.Plugin
 
   connected: (accessToken, options) ->
     @client.authorize accessToken
-    @client.me().then @_onMeSuccess, @_onMeError
+    @client.me().then(@_onMeSuccess, @_onMeError).done =>
+      @view.login @user
+
     @store.set "access-token", accessToken, options.expires
 
     unless options?.silent is true
@@ -55,6 +72,12 @@ class Readmill extends Annotator.Plugin
 
   _onMeError: () =>
     @error "Unable to fetch user info from Readmill"
+
+  _onBookSuccess: (book) =>
+    jQuery.extend @book, book
+
+  _onBookError: =>
+    @error "Unable to fetch book info from Readmill"
 
   _onCreateReadingSuccess: (body, status, jqXHR) =>
     {location} = JSON.parse jqXHR.responseText
@@ -99,6 +122,59 @@ utils =
       obj[decode(key)] = decode value
     obj
 
+class View extends Annotator.Plugin
+  classes:
+    loggedIn: "annotator-readmill-logged-in"
+
+  template: """
+  <div class="annotator-readmill">
+    <a class="annotator-readmill-avatar" href="" target="_blank">
+      <img src="" />
+    </a>
+    <div class="annotator-readmill-user">
+      <span class="annotator-readmill-fullname"></span>
+      <span class="annotator-readmill-username"></span>
+    </div>
+    <div class="annotator-readmill-book"></div>
+    <div class="annotator-readmill-connect">
+      <a href="#">Connect with Readmill</a>
+    </div>
+    <div class="annotator-readmill-logout">
+      <a href="#">Log Out</a>
+    </div>
+  </div>
+  """
+
+  constructor: () ->
+    super jQuery(@template)
+
+  login: (user) ->
+    @updateUser(user) if user
+    @element.addClass @classes.loggedIn
+    this
+
+  logout: () ->
+    @element = @element.replaceWith jQuery(@template)
+    this
+
+  updateUser: (user) ->
+    if user
+      @element.find(".annotator-readmill-fullname").escape(user.fullname)
+      @element.find(".annotator-readmill-username").escape(user.username)
+      @element.find(".annotator-readmill-avatar").attr("href", user.permalink_url)
+              .find("img").attr("src", user.avatar_url)
+    this
+
+  updateBook: (book) ->
+    if book
+      @element.find(".annotator-readmill-book").escape(book.title or "Loading book…")
+    this
+
+  render: ->
+    @updateBook()
+    @updateUser()
+    @element
+
 class Client
   @API_ENDPOINT: "https://api.readmill.com"
 
@@ -113,6 +189,9 @@ class Client
 
   me: ->
     @request url: "/me", type: "GET"
+
+  getBook: (bookId) ->
+    @request url: "/books/#{bookId}", type: "GET"
 
   matchBook: (data) ->
     @request url: "/books/match", type: "GET", data: {q: data}
@@ -252,4 +331,4 @@ class Auth
     window.open url, "readmill-connect", paramString
 
 window.Annotator.Plugin.Readmill = jQuery.extend Readmill,
-  Auth: Auth, Store: Store, Client: Client, utils: utils
+  View: View, Auth: Auth, Store: Store, Client: Client, utils: utils
