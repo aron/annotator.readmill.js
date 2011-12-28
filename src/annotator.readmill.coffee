@@ -93,6 +93,7 @@ class Readmill extends Annotator.Plugin
         ranges: ranges
         highlightUrl: highlight.uri
         commentUrl: ""
+        commentsUrl: highlight.comments
 
       @client.request(url: highlight.comments).error(deferred.reject).done (comments) ->
         if comments.length
@@ -161,6 +162,7 @@ class Readmill extends Annotator.Plugin
       # Need to store this rather than data.location in order to be able to
       # delete the highlight at a later date.
       annotation.highlightUrl = highlight.uri
+      annotation.commentsUrl = highlight.comments
       @client.request(url: highlight.comments).done (comments) ->
         annotation.commentUrl = comments[0].uri if comments.length
 
@@ -180,10 +182,15 @@ class Readmill extends Annotator.Plugin
       @connect() unless @client.isAuthorized()
 
   _onAnnotationUpdated: (annotation) =>
+    data = @_commentFromAnnotation annotation
     if annotation.commentUrl
-      data = @_commentFromAnnotation annotation
       request = @client.updateComment annotation.commentUrl, data
-      request.error (xhr) => @error "Unable to update annotation in Readmill"
+    else if annotation.commentsUrl
+      request = @client.createComment annotation.commentsUrl, data
+      request.done (data) =>
+        annotation.commentUrl = data.location
+
+    request.fail((xhr) => @error "Unable to update annotation in Readmill") if request
 
   _onAnnotationDeleted: (annotation) =>
     if annotation.highlightUrl
@@ -312,8 +319,10 @@ class Client
   deleteHighlight: (url) ->
     @request type: "DELETE", url: url
 
+  createComment: (url, comment) -> 
+    @request type: "POST", url: url, data: {comment}
+
   updateComment: (url, comment) -> 
-    # Need to provide a data filter to trim the re
     @request type: "PUT", url: url, data: {comment}
 
   request: (options={}) ->
