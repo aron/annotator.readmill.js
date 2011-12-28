@@ -67,6 +67,21 @@ class Readmill extends Annotator.Plugin
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
 
+  _highlightFromAnnotation: (annotation) ->
+    # See: https://github.com/Readmill/API/wiki/Readings
+    {
+      pre: annotation.ranges
+      content: annotation.quote
+      highlighted_at: undefined
+    }
+
+  _commentFromAnnotation: (annotation) ->
+    # Documentation seems to indicate this should be wrapped in an object
+    # with a "content" property but that does not seem to work so we just
+    # return the text string here.
+    # See: https://github.com/Readmill/API/wiki/Readings
+    annotation.text
+
   _onConnectSuccess: (params) =>
     @connected params.access_token, params
 
@@ -104,9 +119,17 @@ class Readmill extends Annotator.Plugin
   _onGetReadingError: (reading) =>
     @error "Unable to create reading for this book"
 
+  _onCreateHighlight: (annotation, data) ->
+    annotation.highlightUrl = data.location
+
   _onAnnotationCreated: (annotation) =>
     if @client.isAuthorized() and @book.id
-      @client.createHighlight()
+      url = @book.reading.highlights
+      comment = @_commentFromAnnotation annotation
+      highlight = @_highlightFromAnnotation annotation
+      request = @client.createHighlight url, highlight, comment
+      request.then jQuery.proxy(this, "_onCreateHighlight", annotation), =>
+        @error "Unable to send annotation to Readmill"
     else
       @unsaved.push annotation
       @connect() unless @client.isAuthorized()
@@ -229,8 +252,8 @@ class Client
   getHighlights: (url) ->
     @request url: url, type: "GET"
 
-  createHighlight: ->
-    @request type: "POST"
+  createHighlight: (url, highlight, comment) ->
+    @request type: "POST", url: url, data: {highlight: highlight, comment: comment}
 
   updateHighlight: ->
 
