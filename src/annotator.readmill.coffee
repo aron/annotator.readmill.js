@@ -77,10 +77,10 @@ class Readmill extends Annotator.Plugin
 
   _commentFromAnnotation: (annotation) ->
     # Documentation seems to indicate this should be wrapped in an object
-    # with a "content" property but that does not seem to work so we just
-    # return the text string here.
+    # with a "content" property but that does not seem to work with the
+    # POST /highlights API.
     # See: https://github.com/Readmill/API/wiki/Readings
-    annotation.text
+    {content: annotation.text}
 
   _onConnectSuccess: (params) =>
     @connected params.access_token, params
@@ -122,11 +122,20 @@ class Readmill extends Annotator.Plugin
   _onCreateHighlight: (annotation, data) ->
     annotation.highlightUrl = data.location
 
+    # Now try and get a permalink for the comment by fetching the first
+    # comment for the newly created highlight.
+    @client.request(url: data.location).done (highlight) =>
+      @client.request(url: highlight.comments).done (comments) ->
+        annotation.commentUrl = comments[0].uri if comments.length
+
   _onAnnotationCreated: (annotation) =>
     if @client.isAuthorized() and @book.id
       url = @book.reading.highlights
-      comment = @_commentFromAnnotation annotation
+
+      # Need a txt string here rather than an object here for some reason.
+      comment = @_commentFromAnnotation(annotation).content
       highlight = @_highlightFromAnnotation annotation
+
       request = @client.createHighlight url, highlight, comment
       request.then jQuery.proxy(this, "_onCreateHighlight", annotation), =>
         @error "Unable to send annotation to Readmill"
@@ -135,6 +144,10 @@ class Readmill extends Annotator.Plugin
       @connect() unless @client.isAuthorized()
 
   _onAnnotationUpdated: (annotation) =>
+    if annotation.commentUrl
+      data = @_commentFromAnnotation annotation
+      request = @client.updateComment annotation.commentUrl, data
+      request.error (xhr) => @error "Unable to update annotation in Readmill"
 
   _onAnnotationDeleted: (annotation) =>
     
@@ -243,24 +256,31 @@ class Client
   matchBook: (data) ->
     @request url: "/books/match", type: "GET", data: {q: data}
 
-  createBook: (data) ->
-    @request url: "/books", type: "POST", data: {book: data}
+  createBook: (book) ->
+    @request url: "/books", type: "POST", data: {book}
 
-  createReadingForBook: (bookId, data) ->
-    @request type: "POST", url: "/books/#{bookId}/readings", data: {reading: data}
+  createReadingForBook: (bookId, reading) ->
+    @request type: "POST", url: "/books/#{bookId}/readings", data: {reading}
 
   getHighlights: (url) ->
     @request url: url, type: "GET"
 
-  createHighlight: (url, highlight, comment) ->
-    @request type: "POST", url: url, data: {highlight: highlight, comment: comment}
+  getHighlight: (url) ->
+    @request url: url, type: "GET"
 
-  updateHighlight: ->
+  createHighlight: (url, highlight, comment) ->
+    @request type: "POST", url: url, data: {highlight, comment}
 
   deleteHighlight: ->
 
+  updateComment: (url, comment) -> 
+    # Need to provide a data filter to trim the re
+    @request type: "PUT", url: url, data: {comment}
+
   request: (options={}) ->
     xhr = null
+
+    options.type = "GET" unless options.type
 
     if options.url.indexOf("http") != 0
       options.url = "#{@apiEndpoint}#{options.url}"
@@ -272,6 +292,9 @@ class Client
       options.contentType = "application/json"
     else
       options.data = jQuery.extend {client_id: @clientId}, options.data or {}
+
+    # Trim whitespace from responses before passing to JSON.parse().
+    options.dataFilter = jQuery.trim
 
     options.beforeSend = (jqXHR) =>
       # Set the X-Response header to return the Location header in the body.
