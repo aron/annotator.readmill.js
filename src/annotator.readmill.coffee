@@ -70,10 +70,23 @@ class Readmill extends Annotator.Plugin
   _highlightFromAnnotation: (annotation) ->
     # See: https://github.com/Readmill/API/wiki/Readings
     {
-      pre: annotation.ranges
+      pre: JSON.stringify(annotation.ranges)
       content: annotation.quote
       highlighted_at: undefined
     }
+
+  _annotationFromHighlight: (highlight) ->
+    ranges = try JSON.parse(highlight.pre) catch e then null
+    if ranges
+      {
+        quote: highlight.content
+        text: ""
+        ranges: ranges
+        highlightUrl: highlight.uri
+        commentUrl: ""
+      }
+    else
+      null
 
   _commentFromAnnotation: (annotation) ->
     # Documentation seems to indicate this should be wrapped in an object
@@ -115,9 +128,20 @@ class Readmill extends Annotator.Plugin
 
   _onGetReadingSuccess: (reading) =>
     @book.reading = reading
+    request = @client.getHighlights(reading.highlights)
+    request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 
   _onGetReadingError: (reading) =>
     @error "Unable to create reading for this book"
+
+  _onGetHighlightsSuccess: (highlights) =>
+    annotations = jQuery.map highlights, jQuery.proxy(this, "_annotationFromHighlight")
+
+    # Filter out unparsable annotations.
+    annotations = jQuery.grep annotations, (ann) -> !!ann
+    @annotator.loadAnnotations annotations 
+
+  _onGetHighlightsError: => @error "Unable to fetch highlights for reading"
 
   _onCreateHighlight: (annotation, data) ->
     # Now try and get a permalink for the comment by fetching the first
