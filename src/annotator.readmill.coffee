@@ -120,11 +120,12 @@ class Readmill extends Annotator.Plugin
     @error "Unable to create reading for this book"
 
   _onCreateHighlight: (annotation, data) ->
-    annotation.highlightUrl = data.location
-
     # Now try and get a permalink for the comment by fetching the first
     # comment for the newly created highlight.
     @client.request(url: data.location).done (highlight) =>
+      # Need to store this rather than data.location in order to be able to
+      # delete the highlight at a later date.
+      annotation.highlightUrl = highlight.uri
       @client.request(url: highlight.comments).done (comments) ->
         annotation.commentUrl = comments[0].uri if comments.length
 
@@ -150,7 +151,9 @@ class Readmill extends Annotator.Plugin
       request.error (xhr) => @error "Unable to update annotation in Readmill"
 
   _onAnnotationDeleted: (annotation) =>
-    
+    if annotation.highlightUrl
+      @client.deleteHighlight(annotation.highlightUrl).error =>
+        @error "Unable to update annotation in Readmill"
 
 utils =
   serializeQueryString: (obj, sep="&", eq="=") ->
@@ -271,7 +274,8 @@ class Client
   createHighlight: (url, highlight, comment) ->
     @request type: "POST", url: url, data: {highlight, comment}
 
-  deleteHighlight: ->
+  deleteHighlight: (url) ->
+    @request type: "DELETE", url: url
 
   updateComment: (url, comment) -> 
     # Need to provide a data filter to trim the re
