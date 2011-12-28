@@ -414,21 +414,28 @@ class Store
 class Auth
   @AUTH_ENDPOINT: "http://localhost:8000/oauth/authorize"
 
+  @uuid: ->
+    Auth.uuid.counter = 0 unless Auth.uuid.counter
+    "state-#{Auth.uuid.counter += 1}"
+
   constructor: (options) ->
     {@clientId, @callbackUri, @authEndpoint} = options
     @authEndpoint = Auth.AUTH_ENDPOINT unless @authEndpoint
 
   connect: ->
+    @deferred = new jQuery.Deferred()
+    @deferred.id = Auth.uuid()
+
     params =
       response_type: "code"
       client_id: @clientId
       redirect_uri: @callbackUri
+      state: @deferred.id
     qs = utils.serializeQueryString(params)
 
     Auth.callback = @callback
 
     @popup = @openWindow "#{@authEndpoint}?#{qs}"
-    @deferred = new jQuery.Deferred()
     @deferred.promise()
 
   callback: =>
@@ -436,10 +443,10 @@ class Auth
     params = qs = utils.parseQueryString(hash)
     @popup.close()
 
-    if params.access_token
+    if params.access_token# and params.state is @deferred.id
       @deferred.resolve params
     else
-      @deferred.reject params.error
+      @deferred.reject params.error# or "bad-state"
 
   openWindow: (url, width=725, height=575) ->
     left = window.screenX + (window.outerWidth  - width)  / 2
