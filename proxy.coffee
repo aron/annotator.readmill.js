@@ -2,16 +2,18 @@ uuid = require("node-uuid").v4
 http = require "http"
 url  = require "url"
 qs   = require "querystring"
+ENV  = process.env
 
-API_HOST      = "api.readmill.com"
-AUTH_HOST     = "readmill.com"
-PROXY_DOMAIN  = process.env["PROXY_DOMAIN"]
-CLIENT_ID = process.env["READMILL_CLIENT_ID"]
-CLIENT_SECRET = process.env["READMILL_CLIENT_SECRET"]
+AUTH_HOST       = "readmill.com"
+PROXY_DOMAIN    = ENV["PROXY_DOMAIN"]
+CLIENT_ID       = ENV["READMILL_CLIENT_ID"]
+CLIENT_SECRET   = ENV["READMILL_CLIENT_SECRET"]
+CLIENT_CALLBACK = ENV["READMILL_CLIENT_CALLBACK"]
 
 throw "Requires PROXY_DOMAIN environment variable" unless PROXY_DOMAIN
 throw "Requires READMILL_CLIENT_ID environment variable" unless CLIENT_ID
 throw "Requires READMILL_CLIENT_SECRET environment variable" unless CLIENT_SECRET
+throw "Requires READMILL_CLIENT_CALLBACK environment variable" unless CLIENT_CALLBACK 
 
 callbacks = {}
 
@@ -26,46 +28,6 @@ decorateWithCORS = (res) ->
 
   res.setHeader(key, value) for own key, value of headers
   res
-
-proxy = (serverRequest, serverResponse) ->
-  {query, pathname} = url.parse serverRequest.url, true
-
-  options =
-    host: API_HOST
-    path: url.format(pathname: pathname, query: query)
-    method: serverRequest.method
-
-  clientRequest = http.request options, (clientResponse) ->
-    # Should probably use a Buffer here.
-    body = ""
-
-    console.log clientResponse.statusCode
-
-    clientResponse.on "data", (data) -> body += data
-    clientResponse.on "end", ->
-      serverResponse.setHeader 'Content-Length', body.length
-      for own key, value of clientResponse.headers
-        if key != 'transfer-encoding'
-          key = key.replace /^[a-z]|\-[a-z]/g, (_) -> _.toUpperCase()
-          console.log "#{key}: #{value}"
-          serverResponse.setHeader key, value
-
-      serverResponse.writeHead clientResponse.statusCode
-      serverResponse.end body
-
-  console.log "#{options.method} #{options.path}"
-  for own key, value of serverRequest.headers
-    if key != 'host'
-      key = key.replace /^[a-z]|\-[a-z]/g, (_) -> _.toUpperCase()
-      clientRequest.setHeader key, value
-      console.log "#{key}: #{value}"
-
-  console.log "\n"
-
-  serverRequest.on "data", clientRequest.write.bind(clientRequest)
-  serverRequest.on "end",  clientRequest.end.bind(clientRequest)
-
-  clientRequest
 
 authCallback = (req, res) ->
   {query:{code, error, callback_id}} = url.parse req.url, true
@@ -117,6 +79,12 @@ authCallback = (req, res) ->
 authorize = (req, res) ->
   {query, pathname} = url.parse req.url, true
 
+  # Fail early if callback uri is invalid.
+  unless CLIENT_CALLBACK.split("?")[0] is query["redirect_uri"].split("?")[0]
+    res.writeHead 400
+    res.end()
+    return
+
   id = uuid()
   callbacks[id] = query.redirect_uri
   query.redirect_uri = "#{PROXY_DOMAIN}/callback?callback_id=#{id}"
@@ -139,7 +107,5 @@ server = http.createServer (req, res) ->
     authorize req, res
   else if parsed.pathname.indexOf("/callback") is 0
     authCallback req, res
-  else
-    proxy req, decorateWithCORS(res)
 
-server.listen(process.env["PORT"] || 8000);
+server.listen(process.env["PORT"] || 8000)
