@@ -108,4 +108,4 @@ server = http.createServer (req, res) ->
   else if parsed.pathname.indexOf("/callback") is 0
     authCallback req, res
 
-server.listen(process.env["PORT"] || 8000)
+server.listen ENV["PORT"] or 8000
