@@ -19,6 +19,7 @@ class Readmill extends Annotator.Plugin
     @client = new Readmill.Client @options
 
     @view.subscribe "connect", @connect
+    @view.subscribe "disconnect", @disconnect
 
     token = options.accessToken || @store.get "access-token"
     @connected(token, silent: true) if token
@@ -58,6 +59,10 @@ class Readmill extends Annotator.Plugin
 
     unless options?.silent is true
       Annotator.showNotification "Successfully connected to Readmill"
+
+  disconnect: =>
+    @client.deauthorize()
+    @store.remove "access-token"
 
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
@@ -133,29 +138,27 @@ class View extends Annotator.Plugin
     loggedIn: "annotator-readmill-logged-in"
 
   template: """
-  <div class="annotator-readmill">
-    <a class="annotator-readmill-avatar" href="" target="_blank">
-      <img src="" />
-    </a>
-    <div class="annotator-readmill-user">
-      <span class="annotator-readmill-fullname"></span>
-      <span class="annotator-readmill-username"></span>
-    </div>
-    <div class="annotator-readmill-book"></div>
-    <div class="annotator-readmill-connect">
-      <a href="#">Connect with Readmill</a>
-    </div>
-    <div class="annotator-readmill-logout">
-      <a href="#">Log Out</a>
-    </div>
+  <a class="annotator-readmill-avatar" href="" target="_blank">
+    <img src="" />
+  </a>
+  <div class="annotator-readmill-user">
+    <span class="annotator-readmill-fullname"></span>
+    <span class="annotator-readmill-username"></span>
+  </div>
+  <div class="annotator-readmill-book"></div>
+  <div class="annotator-readmill-connect">
+    <a href="#">Connect with Readmill</a>
+  </div>
+  <div class="annotator-readmill-logout">
+    <a href="#">Log Out</a>
   </div>
   """
 
   constructor: () ->
-    super jQuery(@template)
+    super jQuery("<div class=\"annotator-readmill\">").html(@template)
 
   connect: ->
-    this.publish "connect", this
+    @publish "connect", [this]
 
   login: (user) ->
     @updateUser(user) if user
@@ -163,15 +166,12 @@ class View extends Annotator.Plugin
     this
 
   logout: ->
-    newElement = jQuery(@template)
-
-    @element.replaceWith newElement
-    @element = newElement
+    @element.removeClass(@classes.loggedIn).html(@template)
 
     @user = null
-    @updateBook @book
+    @updateBook()
 
-    this.publish "disconnect", this
+    @publish "disconnect", [this]
 
   updateUser: (@user=@user) ->
     if @user
@@ -270,6 +270,8 @@ class Client
     request
 
   authorize: (@accessToken) ->
+
+  deauthorize: -> @accessToken = null
 
   isAuthorized: -> !!@accessToken
 
