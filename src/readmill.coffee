@@ -3,7 +3,7 @@ jQuery = Annotator.$
 # Grab the Delegator class here as it's useful for other Classes.
 Annotator.Class = Annotator.__super__
 
-class Readmill extends Annotator.Plugin
+Annotator.Readmill = class Readmill extends Annotator.Plugin
   @API_ENDPOINT: "http://localhost:8000"
 
   events:
