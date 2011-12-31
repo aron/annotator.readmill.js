@@ -14,7 +14,7 @@
 #   store.remove("name")
 #
 # Returns a new instance of Store.
-Annotator.Store = class Store extends Annotator.Class
+Annotator.Readmill.Store = class Store extends Annotator.Class
 
   # Internal: Prefix for all keys stored by the store.
   @KEY_PREFIX: "annotator.readmill/"
@@ -24,6 +24,10 @@ Annotator.Store = class Store extends Annotator.Class
 
   # Internal: Reference to the global localStorage object.
   @localStorage: window.localStorage
+
+  @isSupported: ->
+    try "localStorage" in window && window["localStorage"] != null
+    catch e then false    
 
   # Public: Get the current time as a unix timestamp in
   # milliseconds.
@@ -82,7 +86,7 @@ Annotator.Store = class Store extends Annotator.Class
     try
       Store.localStorage.setItem @prefixed(key), value
     catch error
-      this.publish 'error', [error, key, value, this]
+      this.publish 'error', [error, this]
     this
 
   # Public: Removes the key from the localStorage.
