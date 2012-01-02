@@ -45,6 +45,11 @@ Annotator.Readmill.Auth = class Auth
   # Returns nothing.
   constructor: (options) ->
     {@clientId, @callbackUri, @authEndpoint} = options
+    unless @clientId
+      throw new Error '"clientId" option is required by Readmill.Auth'
+    unless @callbackUri
+      throw new Error '"callbackUri" option is required by Readmill.Auth'
+
     @authEndpoint = Auth.AUTH_ENDPOINT unless @authEndpoint
 
   # Public: Begin the OAuth authentication by opening a popup window for the
