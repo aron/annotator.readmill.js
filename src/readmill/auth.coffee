@@ -1,4 +1,5 @@
-utils = Annotator.Readmill.utils
+utils  = Annotator.Readmill.utils
+jQuery = Annotator.$
 
 # Public: Class for authenticating with Readmill using the implicit OAuth API.
 # This essentially opens a new window where the user can grant the plugin

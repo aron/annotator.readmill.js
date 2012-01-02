@@ -1,4 +1,7 @@
-# Client class for interacting with the Readmill API. Manages the Auth headers
+# Export jQuery into local scope.
+jQuery = Annotator.$
+
+# # Client class for interacting with the Readmill API. Manages the Auth headers
 # and client_id parameters. Also provides helper methods for common API
 # requests.
 #
@@ -30,9 +33,10 @@ Annotator.Readmill.Client = class Client
   #           apiEndpoint: An alternative API endpoint (optional).
   #
   # Returns nothing.
-  constructor: (options) ->
+  # Raises Error if options.clientId is not provided.
+  constructor: (options={}) ->
     {@clientId, @accessToken, @apiEndpoint} = options
-    throw new Error "" unless @clientId
+    throw new Error "test" unless @clientId
     @apiEndpoint = Client.API_ENDPOINT unless @apiEndpoint
 
   # Public: Gets the data for the current user.
