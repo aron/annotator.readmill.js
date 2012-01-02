@@ -25,6 +25,13 @@ Annotator.Readmill.Store = class Store extends Annotator.Class
   # Internal: Reference to the global localStorage object.
   @localStorage: window.localStorage
 
+  # Public: Checks to see if the current browser supports local storage.
+  #
+  # Examples
+  #
+  #   store = new Store if Store.isSupported()
+  #
+  # Returns true if the browser supports local storage.
   @isSupported: ->
     try "localStorage" in window && window["localStorage"] != null
     catch e then false    
