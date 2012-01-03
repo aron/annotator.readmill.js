@@ -1,4 +1,5 @@
 describe "Auth", ->
+  jQuery = Annotator.$
   Auth = Annotator.Readmill.Auth
   auth = null
 
