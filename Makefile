@@ -1,4 +1,4 @@
-.PHONY: watch proxy serve
+.PHONY: watch proxy serve build
 
 watch:
 	coffee --watch --output ./lib ./src
