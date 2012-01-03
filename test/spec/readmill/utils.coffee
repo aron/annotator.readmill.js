@@ -1,5 +1,41 @@
 describe "utils", ->
-  utils = Annotator.Readmill.utils
+  utils  = Annotator.Readmill.utils
+  jQuery = Annotator.$
+  fakeProxy = null
+
+  beforeEach ->
+    fakeProxy = ->
+    sinon.stub(jQuery, "proxy").returns fakeProxy
+
+  afterEach ->
+    jQuery.proxy.restore()
+
+  describe "proxyHandlers", ->
+    it "should bind all methods beginning with '_on' to the parent scope", ->
+      obj =
+        _onSubmit: ->
+        _onClick: ->
+        prop: "string"
+      utils.proxyHandlers obj
+
+      expect(obj._onSubmit).to.equal fakeProxy
+      expect(obj._onClick).to.equal fakeProxy
+      expect(obj.prop).to.equal "string"
+
+    it "should not try to bind non functions", ->
+      obj = _onSubmit: "string"
+      utils.proxyHandlers obj
+
+      expect(obj._onSubmit).to.equal "string"
+
+    it "should allow the prefix to be provided", ->
+      obj =
+        handlerSubmit: ->
+        prop: "string"
+      utils.proxyHandlers obj, "handler"
+
+      expect(obj.handlerSubmit).to.equal fakeProxy
+      expect(obj.prop).to.equal "string"
 
   describe "serializeQueryString()", ->
     it "should serialise an object literal into a query string", ->
@@ -23,4 +59,3 @@ describe "utils", ->
       parsed = utils.parseQueryString("dog,woof;cat,meow", ";", ",")
       expect(parsed).to.eql(dog: "woof", cat: "meow")
 
-    

@@ -14,6 +14,12 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   constructor: (options) ->
     super
 
+    # Rather than use CoffeeScript's scope binding for all the event handlers 
+    # in this class (which generates a line of JavaScript per binding) we use a
+    # utilty function to manually bind all functions beginning with "_on" to
+    # the current scope.
+    Readmill.utils.proxyHandlers this
+
     @user   = null
     @book   = @options.book
     @view   = new Readmill.View
@@ -24,7 +30,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @view.subscribe "connect", @connect
     @view.subscribe "disconnect", @disconnect
 
-    token = options.accessToken || @store.get "access-token"
+    token = options.accessToken or @store.get "access-token"
     @connected(token, silent: true) if token
     @unsaved = []
 
@@ -110,26 +116,26 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     else
       null
 
-  _onConnectSuccess: (params) =>
+  _onConnectSuccess: (params) ->
     @connected params.access_token, params
 
-  _onConnectError: (error) =>
+  _onConnectError: (error) ->
     @error error
 
-  _onMeSuccess: (data) =>
+  _onMeSuccess: (data) ->
     @user = data
     @lookupReading()
 
-  _onMeError: () =>
+  _onMeError: () ->
     @error "Unable to fetch user info from Readmill"
 
-  _onBookSuccess: (book) =>
+  _onBookSuccess: (book) ->
     jQuery.extend @book, book
 
-  _onBookError: =>
+  _onBookError: ->
     @error "Unable to fetch book info from Readmill"
 
-  _onCreateReadingSuccess: (body, status, jqXHR) =>
+  _onCreateReadingSuccess: (body, status, jqXHR) ->
     {location} = JSON.parse jqXHR.responseText
 
     if location
@@ -138,18 +144,18 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     else
       @_onGetReadingError()
 
-  _onCreateReadingError: (jqXHR) =>
+  _onCreateReadingError: (jqXHR) ->
     @_onCreateReadingSuccess(null, null, jqXHR) if jqXHR.status == 409
 
-  _onGetReadingSuccess: (reading) =>
+  _onGetReadingSuccess: (reading) ->
     @book.reading = reading
     request = @client.getHighlights(reading.highlights)
     request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 
-  _onGetReadingError: (reading) =>
+  _onGetReadingError: (reading) ->
     @error "Unable to create reading for this book"
 
-  _onGetHighlightsSuccess: (highlights) =>
+  _onGetHighlightsSuccess: (highlights) ->
     deferreds = jQuery.map highlights, jQuery.proxy(this, "_annotationFromHighlight")
 
     # Filter out unparsable annotations.
@@ -158,7 +164,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       annotations = jQuery.makeArray(arguments)
       @annotator.loadAnnotations annotations
 
-  _onGetHighlightsError: => @error "Unable to fetch highlights for reading"
+  _onGetHighlightsError: -> @error "Unable to fetch highlights for reading"
 
   _onCreateHighlight: (annotation, data) ->
     # Now try and get a permalink for the comment by fetching the first
@@ -171,7 +177,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       @client.request(url: highlight.comments).done (comments) ->
         annotation.commentUrl = comments[0].uri if comments.length
 
-  _onAnnotationCreated: (annotation) =>
+  _onAnnotationCreated: (annotation) ->
     if @client.isAuthorized() and @book.id
       url = @book.reading.highlights
 
@@ -186,7 +192,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       @unsaved.push annotation
       @connect() unless @client.isAuthorized()
 
-  _onAnnotationUpdated: (annotation) =>
+  _onAnnotationUpdated: (annotation) ->
     data = @_commentFromAnnotation annotation
     if annotation.commentUrl
       request = @client.updateComment annotation.commentUrl, data
@@ -197,7 +203,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
     request.fail((xhr) => @error "Unable to update annotation in Readmill") if request
 
-  _onAnnotationDeleted: (annotation) =>
+  _onAnnotationDeleted: (annotation) ->
     if annotation.highlightUrl
       @client.deleteHighlight(annotation.highlightUrl).error =>
         @error "Unable to update annotation in Readmill"
