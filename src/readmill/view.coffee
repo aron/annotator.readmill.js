@@ -16,7 +16,7 @@ jQuery = Annotator.$
 #   view.on "disconnect", -> view.logout()
 #
 # Returns a new instance of View.
-class View extends Annotator.Class
+Annotator.Readmill.View = class View extends Annotator.Class
   # Map of events/handlers to be bound to @element.
   events:
     ".annotator-readmill-connect a click": "_onConnectClick"
@@ -49,7 +49,7 @@ class View extends Annotator.Class
   #
   # Returns nothing.
   constructor: ->
-    super jQuery("<div class=\"annotator-readmill\">").html(@template)
+    super jQuery("<div class=\"annotator-readmill\"/>").html(@template)
 
   # Public: Triggers the "connect" event passing in the View instance to
   # all registered listeners. This is called when the user wishes to
