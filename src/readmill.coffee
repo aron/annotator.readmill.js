@@ -1,8 +1,3 @@
-jQuery = Annotator.$
-
-# Grab the Delegator class here as it's useful for other Classes.
-Annotator.Class = Annotator.__super__.constructor
-
 # Base class for the Readmill plugin. This will be called via the jQuery 
 # annotator interface.
 #
@@ -22,6 +17,9 @@ Annotator.Class = Annotator.__super__.constructor
 #
 # Returns a new instance of Readmill.
 Annotator.Readmill = class Readmill extends Annotator.Plugin
+  # Privately export jQuery variable local only to this class.
+  jQuery = Annotator.$
+
   # DOM and custom event to callback map.
   events:
     "annotationCreated": "_onAnnotationCreated"
@@ -108,15 +106,45 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @book.promise.then(@_onBookSuccess, @_onBookError).done =>
       @view.updateBook @book
 
+  # Public: Queries/Creates a reading for the current book.
+  #
+  # Examples
+  #
+  #   request = readmill.lookupReading()
+  #   request.done -> console.log request.reading.id
+  #
+  # Returns a jQuery.Deferred() promise.
   lookupReading: ->
     @lookupBook().done =>
       data = {state: Readmill.Client.READING_STATE_OPEN}
       request = @client.createReadingForBook @book.id, data
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
 
+  # Public: Begins the Readmill authentication flow.
+  #
+  # Examples
+  #
+  #   auth = readmill.connect()
+  #   auth.done -> readmill.client.me() # Load the user data.
+  #
+  # Returns a jQuery.Deferred() promise.
   connect: =>
     @auth.connect().then @_onConnectSuccess, @_onConnectError
 
+  # Public: Setup method that should be called once the user is authenticated
+  # with Readmill. Will display a notification unless options.silent argument
+  # is provided.
+  #
+  # accessToken - Access token for the client/current user.
+  # options     - An object of method options.
+  #               silent: If true will not display the notification.
+  #
+  # Examples
+  #
+  #   readmill.connected("abcdefgh")
+  #   readmill.connected("abcdefgh", silent: true)
+  #
+  # Returns nothing.
   connected: (accessToken, options) ->
     @client.authorize accessToken
     @client.me().then(@_onMeSuccess, @_onMeError).done =>
@@ -127,12 +155,32 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     unless options?.silent is true
       Annotator.showNotification "Successfully connected to Readmill"
 
+  # Public: Removes all traces of the user from the plugin.
+  #
+  # 1. Deauthorises the client instance.
+  # 2. Removes related local storage entries.
+  # 3. Removes annotations from the document.
+  #
+  # Examples
+  #
+  #   jQuery("#logout").click -> readmill.disconnect()
+  #
+  # Returns nothing.
   disconnect: =>
     @client.deauthorize()
     @store.remove "access-token"
     @annotator.element.find(".annotator-hl").each ->
       jQuery(this).replaceWith this.childNodes
 
+  # Internal: Helper method for displaying error notifications.
+  #
+  # message - Message to display to the user.
+  #
+  # Examples
+  #
+  #   readmill.error("Unable to find this book")
+  #
+  # Returns nothing.
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
 
@@ -230,4 +278,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       @client.deleteHighlight(annotation.highlightUrl).error =>
         @error "Unable to update annotation in Readmill"
 
-window.Annotator.Plugin.Readmill = Annotator.Readmill
+# Grab the Delegator class here as it's useful for other Classes.
+Annotator.Class = Annotator.__super__.constructor
+Annotator.Plugin.Readmill = Annotator.Readmill
