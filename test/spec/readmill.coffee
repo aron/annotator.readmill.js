@@ -206,35 +206,78 @@ describe "Readmill", ->
 
   describe "#error()", ->
     it "should display an error notifiaction", ->
-      sinon.stub Annotator, "showNotification"
+      target = sinon.stub Annotator, "showNotification"
       readmill.error("message")
-      expect(Annotator.showNotification).was.called()
-      expect(Annotator.showNotification).was.calledWith("message")
-      Annotator.showNotification.restore()
+      expect(target).was.called()
+      expect(target).was.calledWith("message")
+      target.restore()
 
   describe "#_onConnectSuccess()", ->
+    it "should call @connected() with the access token and additonal params", ->
+      target = sinon.stub readmill, "connected"
+      params = access_token: "123456", expires: 3000
+      readmill._onConnectSuccess(params)
+      expect(target).was.called()
+      expect(target).was.calledWith("123456", params)
 
   describe "#_onConnectError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onConnectError("test-error")
+      expect(target).was.called()
+      expect(target).was.calledWith("test-error")
 
   describe "#_onMeSuccess()", ->
 
   describe "#_onMeError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onMeError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to fetch user info from Readmill")
 
   describe "#_onBookSuccess()", ->
 
   describe "#_onBookError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onBookError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to fetch book info from Readmill")
 
   describe "#_onCreateReadingSuccess()", ->
 
   describe "#_onCreateReadingError()", ->
+    it "should call @_onCreateReadingSuccess() if status is 409", ->
+      target = sinon.stub readmill, "_onCreateReadingSuccess"
+      response = status: 409
+      readmill._onCreateReadingError(response)
+      expect(target).was.called()
+      expect(target).was.calledWith(null, null, response)
+
+    it "should call @error() with the error message if status is not 409", ->
+      target = sinon.stub readmill, "error"
+      readmill._onCreateReadingError(status: 422)
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetReadingSuccess()", ->
 
   describe "#_onGetReadingError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onGetReadingError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetHighlightsSuccess()", ->
 
   describe "#_onGetHighlightsError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onGetHighlightsError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to fetch highlights for reading")
 
   describe "#_onCreateHighlight()", ->
 

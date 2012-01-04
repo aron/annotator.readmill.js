@@ -214,6 +214,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
   _onCreateReadingError: (jqXHR) ->
     @_onCreateReadingSuccess(null, null, jqXHR) if jqXHR.status == 409
+    @error "Unable to create a reading for this book"
 
   _onGetReadingSuccess: (reading) ->
     @book.reading = reading
@@ -221,7 +222,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 
   _onGetReadingError: (reading) ->
-    @error "Unable to create reading for this book"
+    @error "Unable to create a reading for this book"
 
   _onGetHighlightsSuccess: (highlights) ->
     promises = jQuery.map highlights, (highlight) =>
