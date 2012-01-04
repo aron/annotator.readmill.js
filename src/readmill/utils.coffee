@@ -22,7 +22,7 @@ Annotator.Readmill.utils =
   #     _onSubmit: -> @log "submitted"
   #     _onChange: -> @log "changed"
   #
-  # Returns 
+  # Returns
   proxyHandlers: (obj, prefix="_on") ->
     for key, value of obj
       if key.indexOf(prefix) is 0 and typeof value is "function"
@@ -70,3 +70,80 @@ Annotator.Readmill.utils =
       [key, value] = param.split(eq)
       obj[decode(key)] = decode value
     obj
+
+  # Public: Takes an annotation object and returns a highlight object
+  # suitable for submission to the Readmill server.
+  #
+  # annotation - An annotation object.
+  #
+  # Examples
+  #
+  #   _onAnnotationCreated: (ann) ->
+  #     highlight = utils.highlightFromAnnotation(ann)
+  #
+  # Returns a highlight object.
+  highlightFromAnnotation: (annotation) ->
+    # See: https://github.com/Readmill/API/wiki/Readings
+    {
+      pre: JSON.stringify(annotation.ranges)
+      content: annotation.quote
+      highlighted_at: undefined
+    }
+
+  # Public: Takes an annotation object and returns an object suitable for
+  # submission to the Readmill server.
+  #
+  # annotation - An annotation object.
+  #
+  # Examples
+  #
+  #   _onAnnotationCreated: (ann) ->
+  #     comment = utils.commentFromAnnotation(ann)
+  #
+  # Returns a comment object.
+  commentFromAnnotation: (annotation) ->
+    # Documentation seems to indicate this should be wrapped in an object
+    # with a "content" property but that does not seem to work with the
+    # POST /highlights API.
+    # See: https://github.com/Readmill/API/wiki/Readings
+    {content: annotation.text}
+
+  # Public: Transform utility to get an annotation object from a provided
+  # highlight. This method also needs to fetch the comment from a
+  # seperate endpoint so returns a jQuery.Deferred() promise that will
+  # call all "done" callbacks when completed.
+  #
+  # If the highlight fails to parse then deferred.reject() will be called
+  # with no arguments.
+  #
+  # highlight - The highlight object returned from the Readmill API.
+  # client    - An instance of Readmill.Client.
+  #
+  # Examples
+  #
+  #   def = utils.annotationFromHighlight(highlight, client)
+  #   def.done (annotation) -> console.log annotation
+  #   def.fail -> console.log "Couldn't retrieve annotation"
+  #
+  # Returns a jQuery.Deferred() promise.
+  annotationFromHighlight: (highlight, client) ->
+    ranges = try JSON.parse(highlight.pre) catch e then null
+    deferred = new jQuery.Deferred()
+
+    if ranges
+      annotation =
+        quote: highlight.content
+        text: ""
+        ranges: ranges
+        highlightUrl: highlight.uri
+        commentUrl: ""
+        commentsUrl: highlight.comments
+
+      client.request(url: highlight.comments).fail(deferred.reject).done (comments) ->
+        if comments.length
+          annotation.text = comments[0].content
+          annotation.commentUrl = comments[0].uri
+        deferred.resolve annotation
+    else
+      deferred.reject()
+    deferred.promise()

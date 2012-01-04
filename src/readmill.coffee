@@ -78,44 +78,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
 
-  _highlightFromAnnotation: (annotation) ->
-    # See: https://github.com/Readmill/API/wiki/Readings
-    {
-      pre: JSON.stringify(annotation.ranges)
-      content: annotation.quote
-      highlighted_at: undefined
-    }
-
-  _commentFromAnnotation: (annotation) ->
-    # Documentation seems to indicate this should be wrapped in an object
-    # with a "content" property but that does not seem to work with the
-    # POST /highlights API.
-    # See: https://github.com/Readmill/API/wiki/Readings
-    {content: annotation.text}
-
-  _annotationFromHighlight: (highlight) ->
-    ranges = try JSON.parse(highlight.pre) catch e then null
-
-    if ranges
-      deferred = new jQuery.Deferred()
-      deferred.annotation = annotation =
-        quote: highlight.content
-        text: ""
-        ranges: ranges
-        highlightUrl: highlight.uri
-        commentUrl: ""
-        commentsUrl: highlight.comments
-
-      @client.request(url: highlight.comments).error(deferred.reject).done (comments) ->
-        if comments.length
-          annotation.text = comments[0].content
-          annotation.commentUrl = comments[0].uri
-        deferred.resolve annotation
-
-      deferred.promise()
-    else
-      null
-
   _onConnectSuccess: (params) ->
     @connected params.access_token, params
 
@@ -156,11 +118,12 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @error "Unable to create reading for this book"
 
   _onGetHighlightsSuccess: (highlights) ->
-    deferreds = jQuery.map highlights, jQuery.proxy(this, "_annotationFromHighlight")
+    promises = jQuery.map highlights, (highlight) =>
+      Readmill.utils.annotationFromHighlight(highlight, @client)
 
     # Filter out unparsable annotations.
-    deferreds = jQuery.grep deferreds, (def) -> !!def
-    jQuery.when.apply(jQuery, deferreds).done =>
+    promises = jQuery.grep deferreds, (prom) -> prom.state() isnt "rejected"
+    jQuery.when.apply(jQuery, promises).done =>
       annotations = jQuery.makeArray(arguments)
       @annotator.loadAnnotations annotations
 
@@ -180,10 +143,11 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   _onAnnotationCreated: (annotation) ->
     if @client.isAuthorized() and @book.id
       url = @book.reading.highlights
+      utils = Readmill.utils
 
       # Need a text string here rather than an object here for some reason.
-      comment = @_commentFromAnnotation(annotation).content
-      highlight = @_highlightFromAnnotation annotation
+      comment   = utils.commentFromAnnotation(annotation).content
+      highlight = utils.highlightFromAnnotation annotation
 
       request = @client.createHighlight url, highlight, comment
       request.then jQuery.proxy(this, "_onCreateHighlight", annotation), =>
@@ -193,7 +157,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       @connect() unless @client.isAuthorized()
 
   _onAnnotationUpdated: (annotation) ->
-    data = @_commentFromAnnotation annotation
+    data = Readmill.utils.commentFromAnnotation annotation
     if annotation.commentUrl
       request = @client.updateComment annotation.commentUrl, data
     else if annotation.commentsUrl
