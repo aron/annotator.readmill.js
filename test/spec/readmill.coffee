@@ -228,6 +228,17 @@ describe "Readmill", ->
       expect(target).was.calledWith("test-error")
 
   describe "#_onMeSuccess()", ->
+    beforeEach ->
+      sinon.stub readmill, "lookupReading"
+
+    it "should assign the @user data", ->
+      user = {}
+      readmill._onMeSuccess(user)
+      expect(readmill.user).to.equal(user)
+
+    it "should get the reading for the current book", ->
+      readmill._onMeSuccess({})
+      expect(readmill.lookupReading).was.called()
 
   describe "#_onMeError()", ->
     it "should call @error() with the error message", ->
@@ -237,7 +248,14 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to fetch user info from Readmill")
 
   describe "#_onBookSuccess()", ->
-
+    it "should extend @book with the response data", ->
+      target = sinon.stub jQuery, "extend"
+      book = id: 1
+      readmill._onBookSuccess(book)
+      expect(target).was.called()
+      expect(target).was.calledWith(readmill.book, book)
+      target.restore()
+    
   describe "#_onBookError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
@@ -246,9 +264,14 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to fetch book info from Readmill")
 
   describe "#_onCreateReadingSuccess()", ->
+    it "should extract the location permalink from the response body"
+    it "should request the reading resoource"
+    it "should register the @_onGetReadingSuccess() and @_onGetReadingError() callbacks"
+    it "should call @_onGetReadingError() if the location cannot be parsed"
 
   describe "#_onCreateReadingError()", ->
     it "should call @_onCreateReadingSuccess() if status is 409", ->
+      sinon.stub readmill, "error"
       target = sinon.stub readmill, "_onCreateReadingSuccess"
       response = status: 409
       readmill._onCreateReadingError(response)
@@ -262,6 +285,9 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetReadingSuccess()", ->
+    it "should assign the reading to @book.reading"
+    it "should request the highlights for the reading"
+    it "should register the @_onGetHighlightsSuccess() and @_onGetHighlightsError() callbacks"
 
   describe "#_onGetReadingError()", ->
     it "should call @error() with the error message", ->
@@ -271,6 +297,9 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetHighlightsSuccess()", ->
+    it "should parse the highlights"
+    it "should filter out rejected annotations"
+    it "should load the annotations into the annotator"
 
   describe "#_onGetHighlightsError()", ->
     it "should call @error() with the error message", ->
@@ -280,6 +309,7 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to fetch highlights for reading")
 
   describe "#_onCreateHighlight()", ->
+    it "should be refactored"
 
   describe "#_onAnnotationCreated()", ->
 
