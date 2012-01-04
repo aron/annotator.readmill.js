@@ -3,15 +3,43 @@ jQuery = Annotator.$
 # Grab the Delegator class here as it's useful for other Classes.
 Annotator.Class = Annotator.__super__.constructor
 
+# Base class for the Readmill plugin. This will be called via the jQuery 
+# annotator interface.
+#
+# The "book", "clientId" and "callbackUri" arguments are required. The
+# book should be an object literal for a book on Readmill ideally with an
+# "id" but if only a "title", "author" are provided the plugin will
+# create the book for you.
+#
+# Examples
+#
+#   jQuery("#content").annotator()
+#         .annotator("addPlugin", "Readmill", {
+#           book: {id: 52},
+#           clientId: "123456",
+#           callbackUri: "http://example.com/callback.html"
+#         });
+#
+# Returns a new instance of Readmill.
 Annotator.Readmill = class Readmill extends Annotator.Plugin
-  @API_ENDPOINT: "http://localhost:8000"
-
+  # DOM and custom event to callback map.
   events:
     "annotationCreated": "_onAnnotationCreated"
     "annotationUpdated": "_onAnnotationUpdated"
     "annotationDeleted": "_onAnnotationDeleted"
 
-  constructor: (options) ->
+  # Initialises the plugin instance and sets up properties.
+  #
+  # element - The root Annotator element.
+  # options - An object literal of options.
+  #           book        - An object of book metadata.
+  #           clientId    - The client id string for the service.
+  #           callbackUri - A full url pointing to the callback.html file.
+  #           accessToken - A pre activated accessToken (optional).
+  #
+  # Returns nothing.
+  # Raises an Error if any of the required arguments are missing.
+  constructor: (element, options) ->
     super
 
     # Rather than use CoffeeScript's scope binding for all the event handlers 
@@ -19,6 +47,21 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     # utilty function to manually bind all functions beginning with "_on" to
     # the current scope.
     Readmill.utils.proxyHandlers this
+
+    # Ensure required options are provided.
+    errors = (key for own key in ["book", "clientId", "callbackUri"] when not options[key])
+    if errors.length
+      throw new Error """
+        options "#{errors.join('", ')}" are required by the Readmill plugin. eg:
+
+        jQuery("#content").annotator()
+        .annotator("addPlugin", "Readmill", {
+          book: {id: "52"}, /* Or use a title & author. */
+          book: {title: "Brighton Rock", author: "Graham Greene"}
+          clientId: "12345",
+          callbackUri: "http://example.com/callback.html"
+        });
+      """
 
     @user   = null
     @book   = @options.book
@@ -34,19 +77,35 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @connected(token, silent: true) if token
     @unsaved = []
 
-  pluginInit: () ->
+  # Internal: Called by the Annotator after the intance has been created and 
+  # @annotator property has been attached. Sets up initial plugin state.
+  #
+  # Returns nothing.
+  pluginInit: ->
     jQuery("body").append @view.render()
-    @lookupBook().done
+    @lookupBook()
 
+  # Public: Fetches the book resource from the Readmill API and updates the
+  # view when complete. This method is usually called as part of the plugin
+  # setup.
+  #
+  # The method also attaches a "promise" property to @book which can be used
+  # to determine if the book is loaded.
+  #
+  # Examples
+  #
+  #   readmill.lookupBook()
+  #
+  # Returns a jQuery.Deferred() promise.
   lookupBook: ->
-    return @book.deferred if @book.deferred
+    return @book.promise if @book.promise
 
-    @book.deferred = if @book.id
+    @book.promise = if @book.id
       @client.getBook @book.id
     else
       @client.matchBook @book
 
-    @book.deferred.then(@_onBookSuccess, @_onBookError).done =>
+    @book.promise.then(@_onBookSuccess, @_onBookError).done =>
       @view.updateBook @book
 
   lookupReading: ->
@@ -171,3 +230,5 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     if annotation.highlightUrl
       @client.deleteHighlight(annotation.highlightUrl).error =>
         @error "Unable to update annotation in Readmill"
+
+window.Annotator.Plugin.Readmill = Annotator.Readmill
