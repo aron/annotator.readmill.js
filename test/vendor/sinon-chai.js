@@ -15,3 +15,11 @@ Object.defineProperty(chai.Assertion.prototype, "was", {
     return this;
   }
 });
+
+sinon.createPromiseStub = function () {
+  var promise = sinon.stub(jQuery.Deferred().promise());
+  promise.done.returns(promise);
+  promise.fail.returns(promise);
+  promise.then.returns(promise);
+  return promise;
+}

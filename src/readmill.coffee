@@ -1,4 +1,4 @@
-# Base class for the Readmill plugin. This will be called via the jQuery 
+# Base class for the Readmill plugin. This will be called via the jQuery
 # annotator interface.
 #
 # The "book", "clientId" and "callbackUri" arguments are required. The
@@ -40,7 +40,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   constructor: (element, options) ->
     super
 
-    # Rather than use CoffeeScript's scope binding for all the event handlers 
+    # Rather than use CoffeeScript's scope binding for all the event handlers
     # in this class (which generates a line of JavaScript per binding) we use a
     # utilty function to manually bind all functions beginning with "_on" to
     # the current scope.
@@ -75,7 +75,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @connected(token, silent: true) if token
     @unsaved = []
 
-  # Internal: Called by the Annotator after the intance has been created and 
+  # Internal: Called by the Annotator after the intance has been created and
   # @annotator property has been attached. Sets up initial plugin state.
   #
   # Returns nothing.
@@ -136,7 +136,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # is provided.
   #
   # accessToken - Access token for the client/current user.
-  # options     - An object of method options.
+  # options     - An object of method options (default: {}).
   #               silent: If true will not display the notification.
   #
   # Examples
@@ -145,7 +145,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #   readmill.connected("abcdefgh", silent: true)
   #
   # Returns nothing.
-  connected: (accessToken, options) ->
+  connected: (accessToken, options={}) ->
     @client.authorize accessToken
     @client.me().then(@_onMeSuccess, @_onMeError).done =>
       @view.login @user
@@ -169,7 +169,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   disconnect: =>
     @client.deauthorize()
     @store.remove "access-token"
-    @annotator.element.find(".annotator-hl").each ->
+    @element.find(".annotator-hl").each ->
       jQuery(this).replaceWith this.childNodes
 
   # Internal: Helper method for displaying error notifications.
@@ -271,7 +271,8 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       request.done (data) =>
         annotation.commentUrl = data.location
 
-    request.fail((xhr) => @error "Unable to update annotation in Readmill") if request
+    if request
+      request.fail (xhr) => @error "Unable to update annotation in Readmill"
 
   _onAnnotationDeleted: (annotation) ->
     if annotation.highlightUrl

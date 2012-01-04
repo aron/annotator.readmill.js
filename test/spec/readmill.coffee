@@ -4,10 +4,14 @@ describe "Readmill", ->
   readmill = null
 
   beforeEach ->
+    sinon.stub(Readmill.Store.prototype, "get").returns(null)
     readmill = new Readmill $("<div />"),
       book: {}
       clientId: "12345"
       callbackUri: "http://localhost/callback.html"
+
+  afterEach ->
+    Readmill.Store.prototype.get.restore()
 
   it "should be an instance of Annotator.Plugin", ->
     expect(readmill).to.be.an.instanceof Annotator.Plugin
@@ -25,7 +29,7 @@ describe "Readmill", ->
 
   it "should call @connected() with the access token if in localStorage", ->
     sinon.stub(Readmill.prototype, "connected")
-    sinon.stub(Readmill.Store.prototype, "get").returns("abcdefg")
+    Readmill.Store.prototype.get.returns("abcdefg")
 
     target = new Readmill $("<div />"),
       book: {}
@@ -35,7 +39,6 @@ describe "Readmill", ->
     expect(target.connected).was.calledWith("abcdefg")
 
     Readmill.prototype.connected.restore()
-    Readmill.Store.prototype.get.restore()
 
   it "should raise an Error if any required parameters are missing", ->
     target = ->
@@ -66,9 +69,7 @@ describe "Readmill", ->
 
     beforeEach ->
       readmill.book = {id: 1}
-      promise = sinon.stub jQuery.Deferred().promise()
-      promise.done.returns promise
-      promise.then.returns promise
+      promise = sinon.createPromiseStub()
       sinon.stub(readmill.client, "getBook").returns promise
       sinon.stub(readmill.client, "matchBook").returns promise
 
@@ -100,10 +101,8 @@ describe "Readmill", ->
     readingPromise = null
 
     beforeEach ->
-      bookPromise = sinon.stub jQuery.Deferred().promise()
-      bookPromise.done.returns bookPromise
-      readingPromise = sinon.stub jQuery.Deferred().promise()
-      readingPromise.then.returns readingPromise
+      bookPromise    = sinon.createPromiseStub()
+      readingPromise = sinon.createPromiseStub()
 
       sinon.stub(readmill, "lookupBook").returns bookPromise
       sinon.stub(readmill.client, "createReadingForBook").returns readingPromise
@@ -124,12 +123,94 @@ describe "Readmill", ->
       expect(readingPromise.then).was.calledWith(readmill._onCreateReadingSuccess, readmill._onCreateReadingError)
 
   describe "#connect()", ->
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.auth, "connect").returns(promise)
+
+    it "should call @auth.connect()", ->
+      readmill.connect()
+      expect(readmill.auth.connect).was.called()
+
+    it "should register the @_onConnectSuccess and @_onConnectError callbacks", ->
+      readmill.connect()
+      expect(promise.then).was.called()
+      expect(promise.then).was.calledWith(readmill._onConnectSuccess, readmill._onConnectError)
 
   describe "#connected()", ->
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.store, "set")
+      sinon.stub(readmill.client, "me").returns(promise)
+      sinon.stub(readmill.client, "authorize")
+      sinon.stub(Annotator, "showNotification")
+
+    afterEach ->
+      Annotator.showNotification.restore()
+
+    it "should authorise the @client", ->
+      readmill.connected("123456")
+      expect(readmill.client.authorize).was.called()
+
+    it "should request the users details from Readmill", ->
+      readmill.connected("123456")
+      expect(readmill.client.me).was.called()
+
+    it "should register the @_onMeSuccess and @_onMeError callbacks", ->
+      readmill.connected("123456")
+      expect(promise.then).was.called()
+      expect(promise.then).was.calledWith(readmill._onMeSuccess, readmill._onMeError)
+
+    it "should save the access token in the @store", ->
+      readmill.connected("123456")
+      expect(readmill.store.set).was.called()
+      expect(readmill.store.set).was.calledWith("access-token", "123456")
+
+    it "should save the access token in the @store with an expires time", ->
+      readmill.connected("123456", expires: 3000)
+      expect(readmill.store.set).was.called()
+      expect(readmill.store.set).was.calledWith("access-token", "123456", 3000)
+
+    it "should display a success notification", ->
+      readmill.connected("123456")
+      expect(Annotator.showNotification).was.called()
+      expect(Annotator.showNotification).was.calledWith("Successfully connected to Readmill")
+
+    it "should not display a success notification if options.silent is true", ->
+      readmill.connected("123456", silent: true)
+      expect(Annotator.showNotification).was.notCalled()
 
   describe "#disconnect()", ->
+    beforeEach ->
+      sinon.stub(readmill.store, "remove")
+      sinon.stub(readmill.client, "deauthorize")
+      sinon.stub(readmill.element, "find").returns
+        each: sinon.spy()
+
+    it "should deauthorise the @client", ->
+      readmill.disconnect()
+      expect(readmill.client.deauthorize).was.called()
+
+    it "should remove the api token from local storage", ->
+      readmill.disconnect()
+      expect(readmill.store.remove).was.called()
+      expect(readmill.store.remove).was.calledWith("access-token")
+
+    it "should remove highlights from the dom", ->
+      readmill.disconnect()
+      expect(readmill.element.find).was.called()
+      expect(readmill.element.find).was.calledWith(".annotator-hl")
 
   describe "#error()", ->
+    it "should display an error notifiaction", ->
+      sinon.stub Annotator, "showNotification"
+      readmill.error("message")
+      expect(Annotator.showNotification).was.called()
+      expect(Annotator.showNotification).was.calledWith("message")
+      Annotator.showNotification.restore()
 
   describe "#_onConnectSuccess()", ->
 
