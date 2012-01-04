@@ -1,6 +1,6 @@
 #  Useful utility functions.
-Annotator.Readmill.utils =
-  # Create private jQuery variable for this class.
+Annotator.Readmill.utils = do ->
+  # Create private jQuery variable for this object.
   jQuery = Annotator.$
 
   # Public: Binds context of handler methods (beginning with "_on") on the
