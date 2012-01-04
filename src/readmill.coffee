@@ -109,8 +109,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       @view.updateBook @book
 
   lookupReading: ->
-    @lookupBook() unless @book.id
-    jQuery.when(@book.deferred).then =>
+    @lookupBook().done =>
       data = {state: Readmill.Client.READING_STATE_OPEN}
       request = @client.createReadingForBook @book.id, data
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
