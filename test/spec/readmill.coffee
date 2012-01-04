@@ -105,7 +105,7 @@ describe "Readmill", ->
       readingPromise = sinon.stub jQuery.Deferred().promise()
       readingPromise.then.returns readingPromise
 
-      sinon.stub(readmill, "lookupBook").returns bookPromise 
+      sinon.stub(readmill, "lookupBook").returns bookPromise
       sinon.stub(readmill.client, "createReadingForBook").returns readingPromise
 
     it "should call @lookupBook()", ->

@@ -32,7 +32,7 @@ describe "Client", ->
     it "should set the @accessToken property", ->
       client.authorize("abcdefg")
       expect(client.accessToken).to.equal "abcdefg"
-    
+
   describe "#deauthorize()", ->
     it "should remove the @accessToken property", ->
       client.accessToken = "abcdefg"
