@@ -1,6 +1,3 @@
-utils  = Annotator.Readmill.utils
-jQuery = Annotator.$
-
 # Public: Class for authenticating with Readmill using the implicit OAuth API.
 # This essentially opens a new window where the user can grant the plugin
 # access to thier account. The window is then redirected back to callback.html
@@ -18,6 +15,9 @@ jQuery = Annotator.$
 #
 # Returns a new instance of Auth.
 Annotator.Readmill.Auth = class Auth
+  # Export private variables local to this class.
+  utils  = Annotator.Readmill.utils
+  jQuery = Annotator.$
 
   # Public: Default endpoint for the authorisation. Can be overrided by
   # passing @authEndpoint property in to the constructor.

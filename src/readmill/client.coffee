@@ -1,7 +1,4 @@
-# Export jQuery into local scope.
-jQuery = Annotator.$
-
-# # Client class for interacting with the Readmill API. Manages the Auth headers
+# Client class for interacting with the Readmill API. Manages the Auth headers
 # and client_id parameters. Also provides helper methods for common API
 # requests.
 #
@@ -13,6 +10,9 @@ jQuery = Annotator.$
 #
 # Returns a new instance of Client.
 Annotator.Readmill.Client = class Client
+  # Export jQuery into local scope.
+  jQuery = Annotator.$
+
   # Public: Default endpoint for the API. Can be overridden by passing an
   # "apiEndpoint" property in the constructor options.
   @API_ENDPOINT: "https://api.readmill.com"
@@ -88,13 +88,13 @@ Annotator.Readmill.Client = class Client
   # Returns a jQuery.Deferred() promise.
   createReadingForBook: (bookId, reading) ->
     @request type: "POST", url: "/books/#{bookId}/readings", data: {reading}
-  
+
   # Public: Gets an array of highlight objects for the reading. The url can
   # be extracted from the "highlights" property of a reading.
   #
   # url - Highlight url for the reading.
   #
-  # Returns a jQuery.Deferred() promise. 
+  # Returns a jQuery.Deferred() promise.
   getHighlights: (url) ->
     @request url: url, type: "GET"
 

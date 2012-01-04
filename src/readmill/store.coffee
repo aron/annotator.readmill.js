@@ -15,10 +15,9 @@
 #
 # Returns a new instance of Store.
 Annotator.Readmill.Store = class Store extends Annotator.Class
-
   # Internal: Prefix for all keys stored by the store.
   @KEY_PREFIX: "annotator.readmill/"
-  
+
   # Internal: Delimeter used to seperate the cache time from the value.
   @CACHE_DELIMITER: "--cache--"
 
@@ -34,7 +33,7 @@ Annotator.Readmill.Store = class Store extends Annotator.Class
   # Returns true if the browser supports local storage.
   @isSupported: ->
     try "localStorage" in window && window["localStorage"] != null
-    catch e then false    
+    catch e then false
 
   # Public: Get the current time as a unix timestamp in
   # milliseconds.

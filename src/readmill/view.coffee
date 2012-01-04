@@ -1,5 +1,3 @@
-jQuery = Annotator.$
-
 # View class for rendering the plugin badge that allows the user to login and
 # logout of the Readmill service as well as display the current book.
 #
@@ -17,6 +15,8 @@ jQuery = Annotator.$
 #
 # Returns a new instance of View.
 Annotator.Readmill.View = class View extends Annotator.Class
+  jQuery = Annotator.$
+
   # Map of events/handlers to be bound to @element.
   events:
     ".annotator-readmill-connect a click": "_onConnectClick"
@@ -97,7 +97,7 @@ Annotator.Readmill.View = class View extends Annotator.Class
     @element.addClass @classes.loggedIn
     @publish "login", [this]
 
-  # Public: Updates the view to the "logged out" state. Showing the connect 
+  # Public: Updates the view to the "logged out" state. Showing the connect
   # button. This should be called if the accessToken expires or the user
   # manually logs out.
   #

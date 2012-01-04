@@ -1,7 +1,8 @@
-jQuery = Annotator.$
-
-# # Useful utility functions.
+#  Useful utility functions.
 Annotator.Readmill.utils =
+  # Create private jQuery variable for this class.
+  jQuery = Annotator.$
+
   # Public: Binds context of handler methods (beginning with "_on") on the
   # provided object to the provided object. This is useful for binding scope
   # on multiple methods without having to use CoffeeScripts => syntax which
