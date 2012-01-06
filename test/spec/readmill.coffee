@@ -391,7 +391,40 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to fetch highlights for reading")
 
   describe "#_onCreateHighlight()", ->
-    it "should be refactored"
+    promise = null
+    annotation = null
+    response = null
+    highlight = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      annotation = text: "this is an annotation comment"
+      response = location: "http://api.readmill.com/highlight/1"
+      highlight =
+        id: "1"
+        uri: "http://api.readmill.com/highlight/1"
+        comments: "http://api.readmill.com/highlight/1/comments"
+
+      sinon.stub(readmill, "_onAnnotationUpdated")
+      sinon.stub(readmill.client, "request").returns(promise)
+
+    it "should request the newly created highlight", ->
+      readmill._onCreateHighlight(annotation, response)
+      expect(readmill.client.request).was.called()
+      expect(readmill.client.request).was.calledWith(url: response.location)
+
+    it "should store the id, commentsUrl and highlightUrl on the annotation", ->
+      readmill._onCreateHighlight(annotation, response)
+      promise.done.args[0][0](highlight)
+      expect(annotation).to.have.property("id", annotation.id)
+      expect(annotation).to.have.property("highlightUrl", annotation.uri)
+      expect(annotation).to.have.property("commentsUrl", annotation.comments)
+
+    it "should create the comment on the highlight", ->
+      readmill._onCreateHighlight(annotation, response)
+      promise.done.args[0][0](highlight)
+      expect(readmill._onAnnotationUpdated).was.called()
+      expect(readmill._onAnnotationUpdated).was.calledWith(annotation)
 
   describe "#_onAnnotationCreated()", ->
     promise = null

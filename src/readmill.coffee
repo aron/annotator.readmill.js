@@ -240,26 +240,28 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @error "Unable to fetch highlights for reading"
 
   _onCreateHighlight: (annotation, data) ->
-    # Now try and get a permalink for the comment by fetching the first
-    # comment for the newly created highlight.
+    # Now fetch the highlight resource in order to get the required
+    # urls for the highlight, comments and comment resources.
     @client.request(url: data.location).done (highlight) =>
       # Need to store this rather than data.location in order to be able to
       # delete the highlight at a later date.
+      annotation.id = highlight.id
       annotation.highlightUrl = highlight.uri
-      annotation.commentsUrl = highlight.comments
-      @client.request(url: highlight.comments).done (comments) ->
-        annotation.commentUrl = comments[0].uri if comments.length
+      annotation.commentsUrl  = highlight.comments
+
+      # Now create the comment for the highlight. We can do this using the
+      # @_onAnnotationUpdated() method which does this anyway. This should
+      # probably be moved out of callback methods in a later refactor.
+      @_onAnnotationUpdated(annotation) if annotation.text
 
   _onAnnotationCreated: (annotation) ->
     if @client.isAuthorized() and @book.id and @book.reading?.highlights
       url = @book.reading.highlights
-      utils = Readmill.utils
+      highlight = Readmill.utils.highlightFromAnnotation annotation
 
-      # Need a text string here rather than an object here for some reason.
-      comment   = utils.commentFromAnnotation(annotation).content
-      highlight = utils.highlightFromAnnotation annotation
-
-      request = @client.createHighlight url, highlight, comment
+      # We don't create the comment here as we can't easily access the url
+      # permalink. The comment is instead created in the success callback.
+      request = @client.createHighlight url, highlight
       request.done jQuery.proxy(this, "_onCreateHighlight", annotation)
       request.fail @_onAnnotationCreatedError
     else
