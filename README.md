@@ -9,7 +9,7 @@ as the store.
 A demo implementation can be [viewed online][#demo].
 
 [#ann]: http://okfnlabs.org/annotator/
-[#demo]: http://aron.github.com/annotator.readmill.js/example.html
+[#demo]: http://aron.github.com/annotator.readmill.js/
 [#readmill]: http://readmill.com/
 
 Requirements
