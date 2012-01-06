@@ -8,7 +8,7 @@
 #
 #   auth = new Auth
 #     clientID: "12345"
-#     callbackUri: "http://example.com/callback.html"
+#     callbackUrl: "http://example.com/callback.html"
 #   auth.connect().done (params) ->
 #     # Params are extracted from the popup hash.
 #     user.token = params.access_token
@@ -40,16 +40,16 @@ Annotator.Readmill.Auth = class Auth
   #
   # options - Setup options for the class (default: {}).
   #           clientID     - Client ID for the plugin.
-  #           callbackUri  - Full url of the callback html file.
+  #           callbackUrl  - Full url of the callback html file.
   #           authEndpoint - Alternative auth endpoint (optional).
   #
   # Returns nothing.
   constructor: (options) ->
-    {@clientId, @callbackUri, @authEndpoint} = options
+    {@clientId, @callbackUrl, @authEndpoint} = options
     unless @clientId
       throw new Error '"clientId" option is required by Readmill.Auth'
-    unless @callbackUri
-      throw new Error '"callbackUri" option is required by Readmill.Auth'
+    unless @callbackUrl
+      throw new Error '"callbackUrl" option is required by Readmill.Auth'
 
     @authEndpoint = Auth.AUTH_ENDPOINT unless @authEndpoint
 
@@ -75,7 +75,7 @@ Annotator.Readmill.Auth = class Auth
     params =
       response_type: "code"
       client_id: @clientId
-      redirect_uri: @callbackUri
+      redirect_uri: @callbackUrl
       state: deferred.id
     qs = utils.serializeQueryString(params)
 

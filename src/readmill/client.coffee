@@ -43,7 +43,6 @@ Annotator.Readmill.Client = class Client
   #
   # Returns a jQuery.Deferred() promise.
   me: ->
-    debugger
     @request url: "/me", type: "GET"
 
   # Public: Gets data for the book id provided. If no id is known then use
