@@ -299,6 +299,7 @@ describe "Readmill", ->
       readmill._onCreateReadingError(response)
       expect(target).was.called()
       expect(target).was.calledWith(body, "success", response)
+      JSON.parse.restore()
 
     it "should call @error() with the error message if status is not 409", ->
       target = sinon.stub readmill, "error"
@@ -340,7 +341,7 @@ describe "Readmill", ->
     highlights  = null
     promises    = null
     whenPromise = null
-    
+
     beforeEach ->
       highlights = [{}, {}, {}]
       promises = [
@@ -393,20 +394,136 @@ describe "Readmill", ->
     it "should be refactored"
 
   describe "#_onAnnotationCreated()", ->
-    it "should create a callback function with the annotation as the first arg"
-    it "should try and create a new annotation"
-    it "should register success and error handlers"
-    it "should push the annotation into the @unsaved array if unauthed or no book"
-    it "should call @connect if unauthed"
-    it "should look up the book and retry if no book"
+    promise = null
+    proxied = null
+    annotation = {}
 
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      proxied = sinon.spy()
+      readmill.book =
+        id: "32"
+        url: "http://"
+        reading: {highlights: "http://"}
+      sinon.stub(readmill, "lookupBook").returns(sinon.createPromiseStub())
+      sinon.stub(readmill.client, "isAuthorized").returns(true)
+      sinon.stub(readmill.client, "createHighlight").returns(promise)
+      sinon.stub(jQuery, "proxy").returns(proxied)
+
+    afterEach ->
+      jQuery.proxy.restore()
+
+    it "should create a callback function with the annotation as the first arg", ->
+      readmill._onAnnotationCreated(annotation)
+      expect(jQuery.proxy).was.called()
+      expect(jQuery.proxy).was.calledWith(readmill, "_onCreateHighlight", annotation)
+
+    it "should try and create a new annotation", ->
+      readmill._onAnnotationCreated(annotation)
+      target = readmill.client.createHighlight
+      expect(target).was.called()
+      expect(target).was.calledWith(readmill.book.reading.highlights)
+
+    it "should register success and error handlers", ->
+      readmill._onAnnotationCreated(annotation)
+      expect(promise.done).was.called()
+      expect(promise.done).was.calledWith(proxied)
+      expect(promise.fail).was.called()
+      expect(promise.fail).was.calledWith(readmill._onAnnotationCreatedError)
+
+    it "should push the annotation into the @unsaved array if unauthed or no book", ->
+      readmill.book = {}
+      readmill._onAnnotationCreated(annotation)
+      expect(readmill.unsaved).to.eql([annotation])
+
+    it "should call @connect if unauthed", ->
+      readmill.client.isAuthorized.returns(false)
+      target = sinon.stub readmill, "connect"
+      readmill._onAnnotationCreated(annotation)
+      expect(target).was.called()
+
+    it "should look up the book and retry if no book", ->
+      readmill.book = {}
+      target = readmill.lookupBook
+      readmill._onAnnotationCreated(annotation)
+      expect(target).was.called()
+
+  describe "#_onAnnotationCreatedError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onAnnotationCreatedError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to save annotation to Readmill")
 
   describe "#_onAnnotationUpdated()", ->
-    it "should update the comment if annotation.commentUrl is present"
-    it "should create the comment if annotation.commentUrl is not present"
-    it "should regsiter a success hander if annotation is created"
-    it "should register an error handler"
+    annotation = null
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      annotation =
+        text: "Annotation Comment"
+      sinon.stub(readmill.client, "createComment").returns(promise)
+      sinon.stub(readmill.client, "updateComment").returns(promise)
+
+    it "should update the comment if annotation.commentUrl is present", ->
+      target = readmill.client.updateComment
+      annotation.commentUrl = "http://api.readmill.com/comments/1"
+      readmill._onAnnotationUpdated(annotation)
+      expect(target).was.called()
+      expect(target).was.calledWith("http://api.readmill.com/comments/1")
+
+    it "should create the comment if annotation.commentUrl is not present", ->
+      target = readmill.client.createComment
+      annotation.commentsUrl = "http://api.readmill.com/comments/"
+      readmill._onAnnotationUpdated(annotation)
+      expect(target).was.called()
+      expect(target).was.calledWith("http://api.readmill.com/comments/")
+
+    it "should regsiter a success hander if annotation is created", ->
+      target = readmill.client.createComment
+      annotation.commentsUrl = "http://api.readmill.com/comments/"
+      readmill._onAnnotationUpdated(annotation)
+      expect(promise.done).was.called()
+
+    it "should register an error handler", ->
+      target = readmill.client.createComment
+      annotation.commentsUrl = "http://api.readmill.com/comments/"
+      readmill._onAnnotationUpdated(annotation)
+      expect(promise.fail).was.called()
+      expect(promise.fail).was.calledWith(readmill._onAnnotationUpdatedError)
+
+  describe "#_onAnnotationUpdatedError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onAnnotationUpdatedError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to update annotation in Readmill")
 
   describe "#_onAnnotationDeleted()", ->
-    it "should delete the highlight if annotation.highlightUrl is present"
-    it "should do nothing if annotation.highlightUrl is not present"
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.client, "deleteHighlight").returns(promise)
+
+    it "should delete the highlight if annotation.highlightUrl is present", ->
+      readmill._onAnnotationDeleted(highlightUrl: "http://")
+      expect(readmill.client.deleteHighlight).was.called()
+      expect(readmill.client.deleteHighlight).was.calledWith("http://")
+
+    it "should register an error callback", ->
+      readmill._onAnnotationDeleted(highlightUrl: "http://")
+      expect(promise.fail).was.called()
+      expect(promise.fail).was.calledWith(readmill._onAnnotationDeletedError)
+
+    it "should do nothing if annotation.highlightUrl is not present", ->
+      readmill._onAnnotationDeleted({})
+      expect(readmill.client.deleteHighlight).was.notCalled()
+
+  describe "#_onAnnotationDeletedError()", ->
+    it "should call @error() with the error message", ->
+      target = sinon.stub readmill, "error"
+      readmill._onAnnotationDeletedError()
+      expect(target).was.called()
+      expect(target).was.calledWith("Unable to delete annotation on Readmill")

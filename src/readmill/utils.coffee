@@ -128,6 +128,7 @@ Annotator.Readmill.utils = do ->
   #
   # Returns a jQuery.Deferred() promise.
   annotationFromHighlight: (highlight, client) ->
+    debugger
     ranges = try JSON.parse(highlight.pre) catch e then null
     deferred = new jQuery.Deferred()
 

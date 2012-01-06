@@ -236,7 +236,8 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       annotations = jQuery.makeArray(arguments)
       @annotator.loadAnnotations annotations
 
-  _onGetHighlightsError: -> @error "Unable to fetch highlights for reading"
+  _onGetHighlightsError: ->
+    @error "Unable to fetch highlights for reading"
 
   _onCreateHighlight: (annotation, data) ->
     # Now try and get a permalink for the comment by fetching the first
@@ -250,7 +251,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
         annotation.commentUrl = comments[0].uri if comments.length
 
   _onAnnotationCreated: (annotation) ->
-    if @client.isAuthorized() and @book.id
+    if @client.isAuthorized() and @book.id and @book.reading?.highlights
       url = @book.reading.highlights
       utils = Readmill.utils
 
@@ -259,11 +260,16 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       highlight = utils.highlightFromAnnotation annotation
 
       request = @client.createHighlight url, highlight, comment
-      request.then jQuery.proxy(this, "_onCreateHighlight", annotation), =>
-        @error "Unable to send annotation to Readmill"
+      request.done jQuery.proxy(this, "_onCreateHighlight", annotation)
+      request.fail @_onAnnotationCreatedError
     else
       @unsaved.push annotation
       @connect() unless @client.isAuthorized()
+      unless @book.id
+        @lookupBook().done => @_onAnnotationCreated(annotation)
+
+  _onAnnotationCreatedError: ->
+    @error "Unable to save annotation to Readmill"
 
   _onAnnotationUpdated: (annotation) ->
     data = Readmill.utils.commentFromAnnotation annotation
@@ -273,14 +279,18 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       request = @client.createComment annotation.commentsUrl, data
       request.done (data) =>
         annotation.commentUrl = data.location
+    request.fail @_onAnnotationUpdatedError if request
 
-    if request
-      request.fail (xhr) => @error "Unable to update annotation in Readmill"
+  _onAnnotationUpdatedError: ->
+    @error "Unable to update annotation in Readmill"
 
   _onAnnotationDeleted: (annotation) ->
     if annotation.highlightUrl
-      @client.deleteHighlight(annotation.highlightUrl).error =>
-        @error "Unable to update annotation in Readmill"
+      request = @client.deleteHighlight(annotation.highlightUrl)
+      request.fail @_onAnnotationDeletedError
+
+  _onAnnotationDeletedError: ->
+     @error "Unable to delete annotation on Readmill"
 
 # Grab the Delegator class here as it's useful for other Classes.
 Annotator.Class = Annotator.__super__.constructor
