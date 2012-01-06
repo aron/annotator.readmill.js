@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test Suite</title>
+  <link rel="stylesheet" href="./vendor/mocha.css" />
+</head>
+<body>
+  <div id="mocha"></div>
+  <script src="../lib/vendor/jquery.js"></script>
+  <script src="../lib/vendor/annotator.js"></script>
+  <script src="./vendor/coffeescript.js"></script>
+  <script src="./vendor/mocha.js"></script>
+  <script src="./vendor/sinon.js"></script>
+  <script src="./vendor/chai.js"></script>
+  <script src="./vendor/sinon-chai.js"></script>
+  <script>
+    mocha.setup('bdd')
+    window.expect = chai.expect
+  </script>
+  <script type="text/coffeescript">
+    jQuery.ajaxSetup async: false
+
+    modules = jQuery.trim """
+    readmill
+    readmill/utils
+    readmill/store
+    readmill/auth
+    readmill/client
+    readmill/view
+    """
+    modules = modules.split(/\s+/)
+
+    specs  = ("spec/#{script}.coffee"   for script in modules)
+    source = ("../src/#{script}.coffee" for script in modules)
+    requests = jQuery.map source, (script) -> jQuery.get(script, CoffeeScript.run)
+    requests.concat jQuery.map(specs, (script) -> jQuery.get(script, CoffeeScript.run))
+
+    jQuery.when.apply(jQuery, requests).done ->
+      mocha.run().globals(['Annotator', 'jQuery', 'open'])
+  </script>
+</body>
+</html>
