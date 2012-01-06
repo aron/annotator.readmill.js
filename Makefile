@@ -1,10 +1,11 @@
-.PHONY: watch proxy serve build
+.PHONY: watch proxy serve build pkg
 
+version = 0.1.0
 output = lib/annotator.readmill.min.js
 coffee = `npm bin`/coffee
 uglify = `npm bin`/uglifyjs
 header = \
-"/*  Readmill Annotator Plugin - v0.1.0\n \
+"/*  Readmill Annotator Plugin - v${version}\n \
   *  Copyright 2011, Aron Carroll\n \
   *  Released under the MIT license\n \
   *  More Information: http://github.com/aron/readmill.annotator.js\n \
@@ -28,3 +29,8 @@ build:
 	${coffee} --stdio --print | \
 	${uglify} >> ${output} && \
 	echo "" >> ${output}
+
+pkg: build
+	zip -jJ annotator.readmill.${version}.zip \
+	lib/annotator.readmill.min.js \
+	css/annotator.readmill.css

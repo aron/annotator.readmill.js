@@ -105,6 +105,7 @@ There is a _Makefile_ containing useful commands included.
     $ make watch # compiles .coffee files into lib/*.js when they change
     $ make build # creates a production lib/annotator.readmill.js file
     $ make proxy # runs the proxy server locally at http://localhost:8080
+    $ make pkg   # creates a zip file of production files
 
 [#node]: http://nodejs.org/
 
