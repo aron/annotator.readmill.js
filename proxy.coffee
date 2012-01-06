@@ -1,3 +1,28 @@
+# Crude proxy server for imitating implicit auth on the Readmill API. This
+# allows a browser client to authenticate without requiring a local server
+# to handle the authentication.
+#
+# This server requires four environment varibles to be present when running.
+#
+# PROXY_DOMAIN - Domain that the proxy is hosted on eg. (https://localhost:8080)
+# READMILL_CLIENT_ID - Client ID issued by Readmill when creating an app.
+# READMILL_CLIENT_SECRET - Secret issued by Readmill when creating an app.
+# READMILL_CLIENT_CALLBACK - Full url to the callback.html file on the client
+# server.
+# PORT - The port to run the app (default: 8000)
+#
+# Dependancies can be installed by running
+#
+#   $ npm install .
+#
+# Examples:
+#
+#   $ PORT=8000 \
+#     PROXY_DOMAIN=http://localhost:8000 \
+#     READMILL_CLIENT_ID=1234567890 \
+#     READMILL_CLIENT_SECRET=abcdefghijk \
+#     READMILL_CLIENT_CALLBACK=http://localhost:8001/callback.html \
+#     coffee proxy.coffee
 uuid = require("node-uuid").v4
 http = require "http"
 url  = require "url"
@@ -13,7 +38,7 @@ CLIENT_CALLBACK = ENV["READMILL_CLIENT_CALLBACK"]
 throw "Requires PROXY_DOMAIN environment variable" unless PROXY_DOMAIN
 throw "Requires READMILL_CLIENT_ID environment variable" unless CLIENT_ID
 throw "Requires READMILL_CLIENT_SECRET environment variable" unless CLIENT_SECRET
-throw "Requires READMILL_CLIENT_CALLBACK environment variable" unless CLIENT_CALLBACK 
+throw "Requires READMILL_CLIENT_CALLBACK environment variable" unless CLIENT_CALLBACK
 
 callbacks = {}
 
@@ -108,4 +133,4 @@ server = http.createServer (req, res) ->
   else if parsed.pathname.indexOf("/callback") is 0
     authCallback req, res
 
-server.listen(process.env["PORT"] || 8000)
+server.listen ENV["PORT"] or 8000
