@@ -16,7 +16,7 @@ watch:
 proxy:
 	PORT=8080 \
 	PROXY_DOMAIN=http://localhost:8080 \
-	READMILL_CLIENT_CALLBACK=http://localhost:8080/callback.html \
+	READMILL_CLIENT_CALLBACK=http://localhost:8000/callback.html \
 	${coffee} proxy.coffee
 
 serve:
