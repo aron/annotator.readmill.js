@@ -1,7 +1,7 @@
 # Base class for the Readmill plugin. This will be called via the jQuery
 # annotator interface.
 #
-# The "book", "clientId" and "callbackUri" arguments are required. The
+# The "book", "clientId" and "callbackUrl" arguments are required. The
 # book should be an object literal for a book on Readmill ideally with an
 # "id" but if only a "title", "author" are provided the plugin will
 # create the book for you.
@@ -12,7 +12,7 @@
 #         .annotator("addPlugin", "Readmill", {
 #           book: {id: 52},
 #           clientId: "123456",
-#           callbackUri: "http://example.com/callback.html"
+#           callbackUrl: "http://example.com/callback.html"
 #         });
 #
 # Returns a new instance of Readmill.
@@ -32,7 +32,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # options - An object literal of options.
   #           book        - An object of book metadata.
   #           clientId    - The client id string for the service.
-  #           callbackUri - A full url pointing to the callback.html file.
+  #           callbackUrl - A full url pointing to the callback.html file.
   #           accessToken - A pre activated accessToken (optional).
   #
   # Returns nothing.
@@ -47,7 +47,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     Readmill.utils.proxyHandlers this
 
     # Ensure required options are provided.
-    errors = (key for own key in ["book", "clientId", "callbackUri"] when not options[key])
+    errors = (key for own key in ["book", "clientId", "callbackUrl"] when not options[key])
     if errors.length
       throw new Error """
         options "#{errors.join('", ')}" are required by the Readmill plugin. eg:
@@ -57,7 +57,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
           book: {id: "52"}, /* Or use a title & author. */
           book: {title: "Brighton Rock", author: "Graham Greene"}
           clientId: "12345",
-          callbackUri: "http://example.com/callback.html"
+          callbackUrl: "http://example.com/callback.html"
         });
       """
 

@@ -6,7 +6,7 @@ describe "Auth", ->
   beforeEach ->
     auth = new Auth
       clientId: "12345"
-      callbackUri: "http://localhost:8000/callback.html"
+      callbackUrl: "http://localhost:8000/callback.html"
 
   it "should create a new instance of Auth", ->
     expect(auth).to.be.an.instanceof Auth
@@ -14,12 +14,12 @@ describe "Auth", ->
   it "should allow the auth URI to be overridden", ->
     target = new Auth
       clientId: "12345"
-      callbackUri: "http://localhost:8000/callback.html"
+      callbackUrl: "http://localhost:8000/callback.html"
       authEndpoint: "http://localhost:8000/auth"
     expect(target.authEndpoint).to.equal "http://localhost:8000/auth"
 
   it "should raise an exception if @clientId is not provided", ->
-    target = -> new Auth callbackUri: "http://localhost:8000/callback.html"
+    target = -> new Auth callbackUrl: "http://localhost:8000/callback.html"
     expect(target).to.throw Error
 
   it "should raise an exception if @callbackUrl is not provided", ->

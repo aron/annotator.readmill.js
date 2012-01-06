@@ -419,7 +419,7 @@ class Auth
     "state-#{Auth.uuid.counter += 1}"
 
   constructor: (options) ->
-    {@clientId, @callbackUri, @authEndpoint} = options
+    {@clientId, @callbackUrl, @authEndpoint} = options
     @authEndpoint = Auth.AUTH_ENDPOINT unless @authEndpoint
 
   connect: ->
@@ -429,7 +429,7 @@ class Auth
     params =
       response_type: "code"
       client_id: @clientId
-      redirect_uri: @callbackUri
+      redirect_uri: @callbackUrl
       state: @deferred.id
     qs = utils.serializeQueryString(params)
 

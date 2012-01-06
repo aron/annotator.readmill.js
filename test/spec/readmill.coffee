@@ -8,7 +8,7 @@ describe "Readmill", ->
     readmill = new Readmill $("<div />"),
       book: {}
       clientId: "12345"
-      callbackUri: "http://localhost/callback.html"
+      callbackUrl: "http://localhost/callback.html"
 
   afterEach ->
     Readmill.Store.prototype.get.restore()
@@ -22,7 +22,7 @@ describe "Readmill", ->
       book: {}
       clientId: "12345"
       accessToken: "abcdefg"
-      callbackUri: "http://localhost/callback.html"
+      callbackUrl: "http://localhost/callback.html"
     expect(target.connected).was.called()
     expect(target.connected).was.calledWith("abcdefg")
     Readmill.prototype.connected.restore()
@@ -34,7 +34,7 @@ describe "Readmill", ->
     target = new Readmill $("<div />"),
       book: {}
       clientId: "12345"
-      callbackUri: "http://localhost/callback.html"
+      callbackUrl: "http://localhost/callback.html"
     expect(target.connected).was.called()
     expect(target.connected).was.calledWith("abcdefg")
 
@@ -44,7 +44,7 @@ describe "Readmill", ->
     target = ->
       target = new Readmill $("<div />"),
         clientId: "12345"
-        callbackUri: "http://localhost/callback.html"
+        callbackUrl: "http://localhost/callback.html"
     expect(target).to.throw(Error)
 
   describe "#pluginInit()", ->
