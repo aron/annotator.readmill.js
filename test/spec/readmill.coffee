@@ -255,7 +255,7 @@ describe "Readmill", ->
       expect(target).was.called()
       expect(target).was.calledWith(readmill.book, book)
       target.restore()
-    
+
   describe "#_onBookError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
@@ -264,19 +264,41 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to fetch book info from Readmill")
 
   describe "#_onCreateReadingSuccess()", ->
-    it "should extract the location permalink from the response body"
-    it "should request the reading resoource"
-    it "should register the @_onGetReadingSuccess() and @_onGetReadingError() callbacks"
-    it "should call @_onGetReadingError() if the location cannot be parsed"
+    body = null
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.client, "request").returns(promise)
+      body = location: "http://api.readmill.com/reading/1"
+
+    it "should request the reading resource if location is present", ->
+      readmill._onCreateReadingSuccess(body)
+      expect(readmill.client.request).was.called()
+      expect(readmill.client.request.args[0][0]).to.eql(url: "http://api.readmill.com/reading/1")
+
+    it "should register the @_onGetReadingSuccess() and @_onGetReadingError() callbacks", ->
+      readmill._onCreateReadingSuccess(body)
+      expect(promise.then).was.called()
+      expect(promise.then).was.calledWith(readmill._onGetReadingSuccess, readmill._onGetReadingError)
+
+    it "should call @_onGetReadingError() if the location cannot be parsed", ->
+      sinon.stub(readmill, "_onGetReadingError")
+      readmill._onCreateReadingSuccess({})
+      expect(readmill._onGetReadingError).was.called()
 
   describe "#_onCreateReadingError()", ->
     it "should call @_onCreateReadingSuccess() if status is 409", ->
-      sinon.stub readmill, "error"
+      body = {}
       target = sinon.stub readmill, "_onCreateReadingSuccess"
-      response = status: 409
+      response = status: 409, responseText: '{"location": "http://"}'
+
+      sinon.stub(JSON, "parse").returns(body)
+      sinon.stub(readmill, "error")
+
       readmill._onCreateReadingError(response)
       expect(target).was.called()
-      expect(target).was.calledWith(null, null, response)
+      expect(target).was.calledWith(body, "success", response)
 
     it "should call @error() with the error message if status is not 409", ->
       target = sinon.stub readmill, "error"
@@ -285,9 +307,27 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetReadingSuccess()", ->
-    it "should assign the reading to @book.reading"
-    it "should request the highlights for the reading"
-    it "should register the @_onGetHighlightsSuccess() and @_onGetHighlightsError() callbacks"
+    reading = null
+    promise = null
+
+    beforeEach ->
+      reading = highlights: "http://api.readmill.com/reading/1/highlights"
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.client, "getHighlights").returns(promise)
+
+    it "should assign the reading to @book.reading", ->
+      readmill._onGetReadingSuccess(reading)
+      expect(readmill.book.reading).to.equal(reading)
+
+    it "should request the highlights for the reading", ->
+      readmill._onGetReadingSuccess(reading)
+      expect(readmill.client.getHighlights).was.called()
+      expect(readmill.client.getHighlights).was.calledWith(reading.highlights)
+
+    it "should register the @_onGetHighlightsSuccess() and @_onGetHighlightsError() callbacks", ->
+      readmill._onGetReadingSuccess(reading)
+      expect(promise.then).was.called()
+      expect(promise.then).was.calledWith(readmill._onGetHighlightsSuccess, readmill._onGetHighlightsError)
 
   describe "#_onGetReadingError()", ->
     it "should call @error() with the error message", ->
@@ -297,9 +337,50 @@ describe "Readmill", ->
       expect(target).was.calledWith("Unable to create a reading for this book")
 
   describe "#_onGetHighlightsSuccess()", ->
-    it "should parse the highlights"
-    it "should filter out rejected annotations"
-    it "should load the annotations into the annotator"
+    highlights  = null
+    promises    = null
+    whenPromise = null
+    
+    beforeEach ->
+      highlights = [{}, {}, {}]
+      promises = [
+        sinon.createPromiseStub()
+        sinon.createPromiseStub()
+        sinon.createPromiseStub()
+      ]
+      cloned = promises.slice()
+      promises[1].state.returns("rejected")
+      sinon.stub Readmill.utils, "annotationFromHighlight", ->
+        cloned.shift()
+      whenPromise = sinon.createPromiseStub()
+      sinon.stub(jQuery, "when").returns(whenPromise)
+
+    afterEach ->
+      jQuery.when.restore()
+      Readmill.utils.annotationFromHighlight.restore()
+
+    it "should parse the highlights", ->
+      readmill._onGetHighlightsSuccess(highlights)
+      target = Readmill.utils.annotationFromHighlight
+      expect(target).was.called()
+      expect(target.callCount).to.equal(3)
+
+    it "should filter out rejected annotations", ->
+      readmill._onGetHighlightsSuccess(highlights)
+      target = jQuery.when
+      expect(target).was.called()
+      expect(target.args[0].length).to.equal(2)
+      expect(target).was.calledWith(promises[0], promises[2])
+
+    it "should load the annotations into the annotator", ->
+      readmill.annotator = loadAnnotations: sinon.spy()
+
+      annotations = [{}, {}, {}]
+      readmill._onGetHighlightsSuccess(highlights)
+      whenPromise.done.args[0][0].apply(null, annotations)
+
+      expect(readmill.annotator.loadAnnotations).was.called()
+      expect(readmill.annotator.loadAnnotations).was.calledWith(annotations)
 
   describe "#_onGetHighlightsError()", ->
     it "should call @error() with the error message", ->
@@ -318,7 +399,7 @@ describe "Readmill", ->
     it "should push the annotation into the @unsaved array if unauthed or no book"
     it "should call @connect if unauthed"
     it "should look up the book and retry if no book"
-    
+
 
   describe "#_onAnnotationUpdated()", ->
     it "should update the comment if annotation.commentUrl is present"
@@ -329,4 +410,3 @@ describe "Readmill", ->
   describe "#_onAnnotationDeleted()", ->
     it "should delete the highlight if annotation.highlightUrl is present"
     it "should do nothing if annotation.highlightUrl is not present"
-    

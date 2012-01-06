@@ -204,24 +204,26 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @error "Unable to fetch book info from Readmill"
 
   _onCreateReadingSuccess: (body, status, jqXHR) ->
-    {location} = JSON.parse jqXHR.responseText
-
+    {location} = body
     if location
-      request = @client.request(url: location, type: "GET")
+      request = @client.request(url: location)
       request.then @_onGetReadingSuccess, @_onGetReadingError
     else
       @_onGetReadingError()
 
   _onCreateReadingError: (jqXHR) ->
-    @_onCreateReadingSuccess(null, null, jqXHR) if jqXHR.status == 409
-    @error "Unable to create a reading for this book"
+    if jqXHR.status == 409
+      body = JSON.parse jqXHR.responseText
+      @_onCreateReadingSuccess(body, "success", jqXHR)
+    else
+      @error "Unable to create a reading for this book"
 
   _onGetReadingSuccess: (reading) ->
     @book.reading = reading
     request = @client.getHighlights(reading.highlights)
     request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 
-  _onGetReadingError: (reading) ->
+  _onGetReadingError: () ->
     @error "Unable to create a reading for this book"
 
   _onGetHighlightsSuccess: (highlights) ->
@@ -229,7 +231,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       Readmill.utils.annotationFromHighlight(highlight, @client)
 
     # Filter out unparsable annotations.
-    promises = jQuery.grep deferreds, (prom) -> prom.state() isnt "rejected"
+    promises = jQuery.grep promises, (prom) -> prom.state() isnt "rejected"
     jQuery.when.apply(jQuery, promises).done =>
       annotations = jQuery.makeArray(arguments)
       @annotator.loadAnnotations annotations
