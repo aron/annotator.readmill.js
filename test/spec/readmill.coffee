@@ -312,7 +312,21 @@ describe "Readmill", ->
     it "should be refactored"
 
   describe "#_onAnnotationCreated()", ->
+    it "should create a callback function with the annotation as the first arg"
+    it "should try and create a new annotation"
+    it "should register success and error handlers"
+    it "should push the annotation into the @unsaved array if unauthed or no book"
+    it "should call @connect if unauthed"
+    it "should look up the book and retry if no book"
+    
 
   describe "#_onAnnotationUpdated()", ->
+    it "should update the comment if annotation.commentUrl is present"
+    it "should create the comment if annotation.commentUrl is not present"
+    it "should regsiter a success hander if annotation is created"
+    it "should register an error handler"
 
   describe "#_onAnnotationDeleted()", ->
+    it "should delete the highlight if annotation.highlightUrl is present"
+    it "should do nothing if annotation.highlightUrl is not present"
+    
