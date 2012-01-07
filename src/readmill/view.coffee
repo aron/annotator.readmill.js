@@ -129,6 +129,11 @@ Annotator.Readmill.View = class View extends Annotator.Class
     @updateState(@states.FINISH_READING)
     @publish "reading", [this]
 
+  finish: ->
+    @publish "finish", [this]
+    @login()
+    this
+
   # Public: Updates the view to the "logged out" state. Showing the connect
   # button. This should be called if the accessToken expires or the user
   # manually logs out.
@@ -247,7 +252,10 @@ Annotator.Readmill.View = class View extends Annotator.Class
     switch event.target.hash.slice(1)
      when @states.CONNECT then @connect()
      when @states.START_READING then @reading()
-     when @states.FINISH_READING then @login()
+     when @states.FINISH_READING
+       msg = "Are you sure you wish to finish reading? This will remove all annotations from the page"
+       if window.confirm msg
+         @finish()
 
   # Callback for click events on the "logout" button.
   #

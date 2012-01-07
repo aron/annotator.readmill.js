@@ -39,6 +39,19 @@ describe "View", ->
       expect(view.publish).was.called()
       expect(view.publish).was.calledWith("reading")
 
+  describe "#finish()", ->
+    beforeEach ->
+      sinon.stub(view, "login")
+
+    it "should reset the view to login state", ->
+      view.finish()
+      expect(view.login).was.called()
+
+    it "should publish the \"reading\" event", ->
+      view.finish()
+      expect(view.publish).was.called()
+      expect(view.publish).was.calledWith("finish")
+
   describe "#disconnect()", ->
     it "should publish the \"disconnect\" event", ->
       view.disconnect()
@@ -188,10 +201,12 @@ describe "View", ->
       expect(target).was.called()
 
     it "should call @login() if the hash equals #finish", ->
+      sinon.stub(window, "confirm").returns(true)
       event.target.hash = "#finish"
       target = sinon.stub(view, "login")
       view._onConnectClick(event)
       expect(target).was.called()
+      window.confirm.restore()
 
     it "should prevent the default browser action", ->
       view._onConnectClick(event)

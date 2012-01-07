@@ -129,6 +129,11 @@ describe "Readmill", ->
       expect(readingPromise.then).was.called()
       expect(readingPromise.then).was.calledWith(readmill._onCreateReadingSuccess, readmill._onCreateReadingError)
 
+  describe "#endReading()", ->
+    it "should remove the reading property from @book"
+    it "should tell Readmill the book is finished"
+    it "should remove all annotations from the page"
+
   describe "#updatePrivacy()", ->
     it "should update the privacy depending on the view state", ->
       readmill.book.reading = {uri: "http://"}
@@ -234,6 +239,9 @@ describe "Readmill", ->
       expect(target).was.called()
       expect(target).was.calledWith("message")
       target.restore()
+
+  describe "#removeAnnotations()", ->
+    it "should remove all annotations from the page"
 
   describe "#_onConnectSuccess()", ->
     it "should call @connected() with the access token and additonal params", ->

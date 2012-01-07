@@ -78,6 +78,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # Returns nothing.
   pluginInit: ->
     @view.on "reading",    @lookupReading
+    @view.on "finish",     @endReading
     @view.on "privacy",    @updatePrivacy
     @view.on "connect",    @connect
     @view.on "disconnect", @disconnect
@@ -122,6 +123,21 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
         state: Readmill.Client.READING_STATE_OPEN
         private: @view.isPrivate()
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
+
+  # Public: Ends the current reading session if one exists by marking
+  # the book as finished.
+  #
+  # Examples
+  #
+  #   readmill.endReading()
+  #
+  # Returns a jQuery.Deferred() promise.
+  endReading: =>
+    if @book.reading
+      @client.updateReading @book.reading.uri,
+        state: Readmill.Client.READING_STATE_FINISHED
+      @removeAnnotations()
+      delete @book.reading
 
   # Public: Updates the privacy of the reading depending on the status
   # of the view. NOTE: This method doesn't currently work with the Readmill
@@ -183,8 +199,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   disconnect: =>
     @client.deauthorize()
     @store.remove "access-token"
-    @element.find(".annotator-hl").each ->
-      jQuery(this).replaceWith this.childNodes
+    @removeAnnotations()
 
   # Internal: Helper method for displaying error notifications.
   #
@@ -197,6 +212,17 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # Returns nothing.
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
+
+  # Internal: Removes all annotations from the current page.
+  #
+  # Examples
+  #
+  #   readmill.removeAnnotations()
+  #
+  # Returns nothing.
+  removeAnnotations: ->
+    @element.find(".annotator-hl").each ->
+      jQuery(this).replaceWith this.childNodes
 
   _onConnectSuccess: (params) ->
     @connected params.access_token, params
