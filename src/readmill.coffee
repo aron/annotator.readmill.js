@@ -68,9 +68,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @store  = new Readmill.Store
     @client = new Readmill.Client @options
 
-    @view.subscribe "connect", @connect
-    @view.subscribe "disconnect", @disconnect
-
     token = options.accessToken or @store.get "access-token"
     @connected(token, silent: true) if token
     @unsaved = []
@@ -80,6 +77,10 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #
   # Returns nothing.
   pluginInit: ->
+    @view.on "reading",    @lookupReading
+    @view.on "connect",    @connect
+    @view.on "disconnect", @disconnect
+
     jQuery("body").append @view.render()
     @lookupBook()
 
@@ -114,7 +115,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #   request.done -> console.log request.reading.id
   #
   # Returns a jQuery.Deferred() promise.
-  lookupReading: ->
+  lookupReading: =>
     @lookupBook().done =>
       data = {state: Readmill.Client.READING_STATE_OPEN}
       request = @client.createReadingForBook @book.id, data
@@ -192,7 +193,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
   _onMeSuccess: (data) ->
     @user = data
-    @lookupReading()
 
   _onMeError: () ->
     @error "Unable to fetch user info from Readmill"
@@ -220,6 +220,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
   _onGetReadingSuccess: (reading) ->
     @book.reading = reading
+    @view.updateBook(@book)
     request = @client.getHighlights(reading.highlights)
     request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 

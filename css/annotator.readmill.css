@@ -1,6 +1,5 @@
 .annotator-readmill {
 	font-family: "ScalaRegular", Georgia, Times, serif;
-	font-size: 12px;
 	text-align: left;
 	position: fixed;
 	top: 0;
@@ -18,7 +17,7 @@
 .annotator-readmill a,
 .annotator-readmill div {
 	text-wrap: no-wrap;
-	font-size: 12px;
+	font-size: 13px;
 	line-height: 1.3;
 	color: #fff;
 }
@@ -32,12 +31,9 @@
 }
 
 .annotator-readmill .annotator-readmill-connect a {
-	font-size: 16px;
+	font-size: 11px;
 	line-height: 1;
-}
-
-.annotator-readmill.annotator-readmill-logged-in .annotator-readmill-connect {
-	display: none;
+	text-transform: uppercase;
 }
 
 .annotator-readmill .annotator-readmill-avatar {
@@ -63,6 +59,45 @@
 	height: 100%;
 }
 
+.annotator-readmill-reading label {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	cursor: pointer;
+	text-indent: -999em;
+	margin-left: 8px;
+	background: url(../images/privacy-sprite-14x84.png) no-repeat 0 0;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+}
+
+.annotator-readmill-reading label:hover,
+.annotator-readmill-reading label:focus {
+	background-position: 0 -14px;
+}
+
+.annotator-readmill-reading label:active {
+	background-position: 0 -28px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked {
+	background-position: 0 -42px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked:hover,
+.annotator-readmill-reading label.annotator-readmill-checked:focus {
+	background-position: 0 -56px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked:active {
+	background-position: 0 -70px;
+}
+
+.annotator-readmill .annotator-readmill-reading input[type=checkbox] {
+	display: none;
+}
+
 .annotator-readmill .annotator-readmill-logout {
 	position: absolute;
 	top: 0;
@@ -83,29 +118,4 @@
 	font-size: 11px;
 	text-align: center;
 	text-transform: uppercase;
-}
-
-.annotator-readmill .annotator-readmill-user {
-	display: none;
-}
-
-.annotator-readmill.annotator-readmill-logged-in .annotator-readmill-user {
-	display: block;
-}
-
-.annotator-readmill .annotator-readmill-username {
-	color: #a7bbc7;
-}
-
-.annotator-readmill .annotator-readmill-username:before {
-	content: "(";
-}
-
-.annotator-readmill .annotator-readmill-username:after {
-	content: ")";
-}
-
-.annotator-readmill.annotator-readmill-logged-in .annotator-readmill-book {
-	font-size: 16px;
-	line-height: 1;
 }

@@ -64,6 +64,14 @@ describe "Readmill", ->
       readmill.pluginInit()
       expect(readmill.lookupBook).was.called()
 
+    it "should register view event listeners", ->
+      target = sinon.stub(readmill.view, "on")
+      readmill.pluginInit()
+      expect(readmill.view.on).was.calledWith("reading",    readmill.lookupReading)
+      expect(readmill.view.on).was.calledWith("connect",    readmill.connect)
+      expect(readmill.view.on).was.calledWith("disconnect", readmill.disconnect)
+
+
   describe "#lookupBook()", ->
     promise = null
 
@@ -236,10 +244,6 @@ describe "Readmill", ->
       readmill._onMeSuccess(user)
       expect(readmill.user).to.equal(user)
 
-    it "should get the reading for the current book", ->
-      readmill._onMeSuccess({})
-      expect(readmill.lookupReading).was.called()
-
   describe "#_onMeError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
@@ -314,11 +318,16 @@ describe "Readmill", ->
     beforeEach ->
       reading = highlights: "http://api.readmill.com/reading/1/highlights"
       promise = sinon.createPromiseStub()
+      sinon.stub(readmill.view, "updateBook")
       sinon.stub(readmill.client, "getHighlights").returns(promise)
 
     it "should assign the reading to @book.reading", ->
       readmill._onGetReadingSuccess(reading)
       expect(readmill.book.reading).to.equal(reading)
+
+    it "should update the view with the reading", ->
+      readmill._onGetReadingSuccess(reading)
+      expect(readmill.view.updateBook).was.called()
 
     it "should request the highlights for the reading", ->
       readmill._onGetReadingSuccess(reading)
