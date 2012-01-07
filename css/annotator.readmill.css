@@ -60,7 +60,7 @@
 }
 
 .annotator-readmill-reading label {
-	display: inline-block;
+	display: none;
 	width: 14px;
 	height: 14px;
 	cursor: pointer;
@@ -92,6 +92,10 @@
 
 .annotator-readmill-reading label.annotator-readmill-checked:active {
 	background-position: 0 -70px;
+}
+
+.annotator-readmill.annotator-readmill-logged-in label {
+	display: inline-block;
 }
 
 .annotator-readmill .annotator-readmill-reading input[type=checkbox] {
