@@ -89,6 +89,9 @@ Annotator.Readmill.Client = class Client
   createReadingForBook: (bookId, reading) ->
     @request type: "POST", url: "/books/#{bookId}/readings", data: {reading}
 
+  updateReading: (url, reading) ->
+    @request type: "PUT", url: url, data: {reading}
+
   # Public: Gets an array of highlight objects for the reading. The url can
   # be extracted from the "highlights" property of a reading.
   #

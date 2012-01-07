@@ -78,6 +78,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # Returns nothing.
   pluginInit: ->
     @view.on "reading",    @lookupReading
+    @view.on "privacy",    @updatePrivacy
     @view.on "connect",    @connect
     @view.on "disconnect", @disconnect
 
@@ -120,6 +121,15 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       data = {state: Readmill.Client.READING_STATE_OPEN}
       request = @client.createReadingForBook @book.id, data
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
+
+  # Public: Updates the privacy of the reading depending on the status
+  # of the view. NOTE: This method doesn't currently work with the Readmill
+  # API, it returns 200 but the "private" flag is unchanged.
+  #
+  # Returns jQuery.Deferred promise.
+  updatePrivacy: =>
+    if @book.reading
+      @client.updateReading @book.reading.uri, private: @view.isPrivate()
 
   # Public: Begins the Readmill authentication flow.
   #

@@ -71,7 +71,6 @@ describe "Readmill", ->
       expect(readmill.view.on).was.calledWith("connect",    readmill.connect)
       expect(readmill.view.on).was.calledWith("disconnect", readmill.disconnect)
 
-
   describe "#lookupBook()", ->
     promise = null
 
@@ -129,6 +128,22 @@ describe "Readmill", ->
       bookPromise.done.args[0][0]()
       expect(readingPromise.then).was.called()
       expect(readingPromise.then).was.calledWith(readmill._onCreateReadingSuccess, readmill._onCreateReadingError)
+
+  describe "#updatePrivacy()", ->
+    it "should update the privacy depending on the view state", ->
+      readmill.book.reading = {uri: "http://"}
+      sinon.stub(readmill.view, "isPrivate").returns(true)
+      sinon.stub(readmill.client, "updateReading")
+
+      readmill.updatePrivacy()
+      expect(readmill.view.isPrivate).was.called()
+      expect(readmill.client.updateReading).was.called()
+      expect(readmill.client.updateReading).was.calledWith("http://", private: true)
+
+    it "should do nothing if there is no reading", ->
+      sinon.stub(readmill.client, "updateReading")
+      readmill.updatePrivacy()
+      expect(readmill.client.updateReading).was.notCalled()
 
   describe "#connect()", ->
     promise = null

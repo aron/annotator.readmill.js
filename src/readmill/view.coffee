@@ -179,11 +179,12 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # Returns itself.
   updateBook: (@book=@book) ->
     text = "Loading book…"
+    target = @element.find(".annotator-readmill-book")
     if @book
       text = @book.title if @book.title
       link = if @book.reading then @book.reading.permalink_url
       target.attr("href", link) if link
-    target = @element.find(".annotator-readmill-book").escape(text)
+    target.escape(text)
     this
 
   # Internal: Updates the current reading state.
