@@ -10,7 +10,7 @@
 	background: #052336 url(../images/readmill-logo-30x30.png) no-repeat 9px 11px;
 }
 
-.annotator-readmill.annotator-readmill-logged-in {
+.annotator-readmill-logged-in {
 	padding-right: 57px;
 }
 
@@ -30,13 +30,13 @@
 	text-decoration: underline;
 }
 
-.annotator-readmill .annotator-readmill-connect a {
+.annotator-readmill-connect a {
 	font-size: 11px;
 	line-height: 1;
 	text-transform: uppercase;
 }
 
-.annotator-readmill .annotator-readmill-avatar {
+.annotator-readmill-avatar {
 	position: absolute;
 	display: none;
 	left: 9px;
@@ -45,11 +45,11 @@
 	height: 30px;
 }
 
-.annotator-readmill.annotator-readmill-logged-in .annotator-readmill-avatar {
+.annotator-readmill-logged-in .annotator-readmill-avatar {
 	display: block;
 }
 
-.annotator-readmill .annotator-readmill-avatar:hover {
+.annotator-readmill-avatar:hover {
 	text-decoration: none;
 }
 
@@ -94,15 +94,15 @@
 	background-position: 0 -70px;
 }
 
-.annotator-readmill.annotator-readmill-logged-in label {
+.annotator-readmill-logged-in label {
 	display: inline-block;
 }
 
-.annotator-readmill .annotator-readmill-reading input[type=checkbox] {
+.annotator-readmill-reading input[type=checkbox] {
 	display: none;
 }
 
-.annotator-readmill .annotator-readmill-logout {
+.annotator-readmill-logout {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -112,11 +112,11 @@
 	height: 48px;
 }
 
-.annotator-readmill.annotator-readmill-logged-in .annotator-readmill-logout {
+.annotator-readmill-logged-in .annotator-readmill-logout {
 	display: table;
 }
 
-.annotator-readmill .annotator-readmill-logout a {
+.annotator-readmill-logout a {
 	display: table-cell;
 	vertical-align: middle;
 	font-size: 11px;
