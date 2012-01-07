@@ -118,8 +118,9 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   # Returns a jQuery.Deferred() promise.
   lookupReading: =>
     @lookupBook().done =>
-      data = {state: Readmill.Client.READING_STATE_OPEN}
-      request = @client.createReadingForBook @book.id, data
+      request = @client.createReadingForBook @book.id,
+        state: Readmill.Client.READING_STATE_OPEN
+        private: @view.isPrivate()
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
 
   # Public: Updates the privacy of the reading depending on the status
