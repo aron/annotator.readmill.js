@@ -129,8 +129,10 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #
   # Returns jQuery.Deferred promise.
   updatePrivacy: =>
-    if @book.reading
-      @client.updateReading @book.reading.uri, private: @view.isPrivate()
+    isPrivate = @view.isPrivate()
+    if @book.reading and @book.reading.private isnt isPrivate
+      @book.reading.private = isPrivate
+      @client.updateReading @book.reading.uri, private: isPrivate
 
   # Public: Begins the Readmill authentication flow.
   #

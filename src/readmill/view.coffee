@@ -182,8 +182,9 @@ Annotator.Readmill.View = class View extends Annotator.Class
     target = @element.find(".annotator-readmill-book")
     if @book
       text = @book.title if @book.title
-      link = if @book.reading then @book.reading.permalink_url
-      target.attr("href", link) if link
+      if @book.reading
+        @updatePrivate(@book.reading.private)
+        target.attr("href", @book.reading.permalink_url)
     target.escape(text)
     this
 
@@ -200,6 +201,27 @@ Annotator.Readmill.View = class View extends Annotator.Class
 
     @element.find(".annotator-readmill-connect a").html(map[state])
             .attr("href", "#" + state)
+    this
+
+  # Public: Toggles the privacy checkbox.
+  #
+  # isPrivate - True if the checkbox should be checked (default: false).
+  # options   - Object literal of options for the method (default: {}).
+  #             force: Force an update, useful for updating the rest of the
+  #                    view when the checkbox changes.
+  #
+  # Examples
+  #
+  #   view.updatePrivate(true) # Check the checkbox
+  #   view.updatePrivate(false) # Check the checkbox
+  #   view.updatePrivate(false, force: true) # Force an update
+  #
+  # Returns itself.
+  updatePrivate: (isPrivate=false, options={}) ->
+    if isPrivate isnt @isPrivate() or options.force is true
+      @element.find("label").toggleClass(@classes.checked, isPrivate)
+      @element.find("input[type=checkbox]")[0].checked = isPrivate
+      @publish "privacy", [isPrivate, this]
     this
 
   # Public: Renders the full view. Should be called once the instance is
@@ -244,5 +266,4 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #
   # Returns nothing.
   _onCheckboxChange: (event) =>
-    @element.find("label").toggleClass(@classes.checked, event.target.checked)
-    @publish "privacy", [event.target.checked, this]
+    @updatePrivate(event.target.checked, force: true)

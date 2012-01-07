@@ -145,6 +145,15 @@ describe "View", ->
         expect(target[0].hash).to.equal("#" + state)
         expect(target.html()).to.equal(map[state])
 
+  describe "#updatePrivate()", ->
+    it "should add the @classes.private class if isPrivate is true"
+    it "should remove the @classes.private class if isPrivate is false"
+    it "should check the checkbox if isPrivate is true"
+    it "should uncheck the checkbox if isPrivate is false"
+    it "should do nothing if the checkbox state is unchanged"
+    it "should allow options.force to bypass the check"
+    it "should trigger the \"private\" event"
+
   describe "#render()", ->
     it "should call @updateBook()", ->
       sinon.stub view, "updateBook"
@@ -210,6 +219,13 @@ describe "View", ->
     beforeEach ->
       event = jQuery.Event()
       event.target = checked: true
+
+    it "should update the private checkbox state", ->
+      sinon.stub(view, "updatePrivate")
+      view._onCheckboxChange(event)
+      target = view.element.find('label').hasClass(view.classes.checked)
+      expect(view.updatePrivate).was.called()
+      expect(view.updatePrivate).was.calledWith(true)
 
     it "should add @classes.checked to the label is checked", ->
       view._onCheckboxChange(event)
