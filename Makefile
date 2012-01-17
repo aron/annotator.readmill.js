@@ -23,9 +23,12 @@ proxy:
 serve:
 	python -m SimpleHTTPServer 8000
 
+# Oh boy what a mess. Use find and cat here to make sure that utils.coffee
+# is included before all other dependancies.
 build:
 	echo ${header} > ${output} && \
-	cat -s src/readmill.coffee src/readmill/*.coffee | \
+	find ./src/readmill -not -name "utils.coffee" -type f -print | \
+	xargs cat src/readmill.coffee src/readmill/utils.coffee | \
 	${coffee} --stdio --print | \
 	${uglify} >> ${output} && \
 	echo "" >> ${output}
