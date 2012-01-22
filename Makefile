@@ -1,4 +1,4 @@
-.PHONY: watch proxy serve build pkg
+.PHONY: watch proxy serve test build pkg
 
 version = 0.1.0
 output = lib/annotator.readmill.min.js
@@ -22,6 +22,9 @@ proxy:
 
 serve:
 	python -m SimpleHTTPServer 8000
+
+test:
+	open http://localhost:8000/test/index.html
 
 # Oh boy what a mess. Use find and cat here to make sure that utils.coffee
 # is included before all other dependancies.
