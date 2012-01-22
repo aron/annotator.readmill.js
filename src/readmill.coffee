@@ -40,12 +40,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   constructor: (element, options) ->
     super
 
-    # Rather than use CoffeeScript's scope binding for all the event handlers
-    # in this class (which generates a line of JavaScript per binding) we use a
-    # utilty function to manually bind all functions beginning with "_on" to
-    # the current scope.
-    Readmill.utils.proxyHandlers this
-
     # Ensure required options are provided.
     errors = (key for own key in ["book", "clientId", "callbackUrl"] when not options[key])
     if errors.length
@@ -140,15 +134,15 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       delete @book.reading
 
   # Public: Updates the privacy of the reading depending on the status
-  # of the view. NOTE: This method doesn't currently work with the Readmill
-  # API, it returns 200 but the "private" flag is unchanged.
+  # of the view.
   #
   # Returns jQuery.Deferred promise.
   updatePrivacy: =>
     isPrivate = @view.isPrivate()
     if @book.reading and @book.reading.private isnt isPrivate
       @book.reading.private = isPrivate
-      @client.updateReading @book.reading.uri, private: isPrivate
+      request = @client.updateReading(@book.reading.uri, private: isPrivate)
+      request.fail(@_onUpdatePrivacyError)
 
   # Public: Begins the Readmill authentication flow.
   #
@@ -257,6 +251,14 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     else
       @error "Unable to create a reading for this book"
 
+  # Public: Callback handler for failiure to update the privacy value.
+  #
+  # jqXHR - The jqXHR object for the failed request.
+  #
+  # Returns nothing.
+  _onUpdatePrivacyError: (jqXHR) ->
+    @error "Unable to update the privacy state for this book"
+
   _onGetReadingSuccess: (reading) ->
     @book.reading = reading
     @view.updateBook(@book)
@@ -291,7 +293,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
       # Now create the comment for the highlight. We can do this using the
       # @_onAnnotationUpdated() method which does this anyway. This should
-      # probably be moved out of callback methods in a later refactor.
+      # probably be moved out the callback methods in a later refactor.
       @_onAnnotationUpdated(annotation) if annotation.text
 
   _onAnnotationCreated: (annotation) ->

@@ -135,18 +135,30 @@ describe "Readmill", ->
     it "should remove all annotations from the page"
 
   describe "#updatePrivacy()", ->
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.client, "updateReading").returns(promise)
+
     it "should update the privacy depending on the view state", ->
       readmill.book.reading = {uri: "http://"}
       sinon.stub(readmill.view, "isPrivate").returns(true)
-      sinon.stub(readmill.client, "updateReading")
 
       readmill.updatePrivacy()
       expect(readmill.view.isPrivate).was.called()
       expect(readmill.client.updateReading).was.called()
       expect(readmill.client.updateReading).was.calledWith("http://", private: true)
 
+    it "should register an error handler", ->
+      readmill.book.reading = {uri: "http://"}
+      sinon.stub(readmill.view, "isPrivate").returns(true)
+
+      readmill.updatePrivacy()
+      expect(promise.fail).was.called()
+      expect(promise.fail).was.calledWith(readmill._onUpdatePrivacyError)
+
     it "should do nothing if there is no reading", ->
-      sinon.stub(readmill.client, "updateReading")
       readmill.updatePrivacy()
       expect(readmill.client.updateReading).was.notCalled()
 
@@ -270,7 +282,7 @@ describe "Readmill", ->
   describe "#_onMeError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onMeError()
+      readmill._onMeError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch user info from Readmill")
 
@@ -286,7 +298,7 @@ describe "Readmill", ->
   describe "#_onBookError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onBookError()
+      readmill._onBookError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch book info from Readmill")
 
@@ -365,7 +377,7 @@ describe "Readmill", ->
   describe "#_onGetReadingError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onGetReadingError()
+      readmill._onGetReadingError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to create a reading for this book")
 
@@ -418,7 +430,7 @@ describe "Readmill", ->
   describe "#_onGetHighlightsError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onGetHighlightsError()
+      readmill._onGetHighlightsError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch highlights for reading")
 
@@ -501,9 +513,9 @@ describe "Readmill", ->
       readmill._onAnnotationCreated(annotation)
       expect(readmill.unsaved).to.eql([annotation])
 
-    it "should call @connect if unauthed", ->
+    it "should notify the user that the plugin is not authorised", ->
       readmill.client.isAuthorized.returns(false)
-      target = sinon.stub readmill, "connect"
+      target = sinon.stub readmill, "unauthorized"
       readmill._onAnnotationCreated(annotation)
       expect(target).was.called()
 
@@ -516,7 +528,7 @@ describe "Readmill", ->
   describe "#_onAnnotationCreatedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationCreatedError()
+      readmill._onAnnotationCreatedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to save annotation to Readmill")
 
@@ -561,7 +573,7 @@ describe "Readmill", ->
   describe "#_onAnnotationUpdatedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationUpdatedError()
+      readmill._onAnnotationUpdatedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to update annotation in Readmill")
 
@@ -589,6 +601,6 @@ describe "Readmill", ->
   describe "#_onAnnotationDeletedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationDeletedError()
+      readmill._onAnnotationDeletedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to delete annotation on Readmill")
