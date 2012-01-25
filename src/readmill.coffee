@@ -26,6 +26,15 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     "annotationUpdated": "_onAnnotationUpdated"
     "annotationDeleted": "_onAnnotationDeleted"
 
+  # Default options for the class.
+  options:
+    # Gets a unique identifier for this page. This allows a book to be spread
+    # over multiple html pages but retain a single resource on Readmill. By
+    # default this is the page URI up to the query string.
+    #
+    # Returns a unique id for the page.
+    getPage: -> window.location.href.split('?').shift()
+
   # Initialises the plugin instance and sets up properties.
   #
   # element - The root Annotator element.
@@ -34,6 +43,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #           clientId    - The client id string for the service.
   #           callbackUrl - A full url pointing to the callback.html file.
   #           accessToken - A pre activated accessToken (optional).
+  #           getPage     - A function that returns a page id (optional).
   #
   # Returns nothing.
   # Raises an Error if any of the required arguments are missing.
@@ -344,6 +354,9 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       # @_onAnnotationUpdated() method which does this anyway. This should
       # probably be moved out the callback methods in a later refactor.
       @_onAnnotationUpdated(annotation) if annotation.text
+
+  _onBeforeAnnotationCreated: (annotation) ->
+    annotation.page = @options.getPage()
 
   _onAnnotationCreated: (annotation) ->
     if @client.isAuthorized() and @book.id and @book.reading?.highlights

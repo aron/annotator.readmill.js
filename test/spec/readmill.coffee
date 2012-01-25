@@ -59,6 +59,10 @@ describe "Readmill", ->
     expect(target.callCount).to.equal(methods)
     target.restore()
 
+  it "should have a default options.getPage() function", ->
+    expected = window.location.href.split("?").shift()
+    expect(readmill.options.getPage()).to.equal(expected)
+
   describe "#pluginInit()", ->
     beforeEach ->
       sinon.stub(jQuery.fn, "append")
