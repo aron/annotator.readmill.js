@@ -47,6 +47,18 @@ describe "Readmill", ->
         callbackUrl: "http://localhost/callback.html"
     expect(target).to.throw(Error)
 
+  it "should wrap all methods with 'Error' in the name with a 401 handler", ->
+    target = sinon.stub(Readmill.prototype, "_createUnauthorizedHandler")
+    new Readmill $("<div />"),
+      book: {}
+      clientId: "12345"
+      callbackUrl: "http://localhost/callback.html"
+    
+    methods = 0
+    methods++ for key, value of Readmill.prototype when key.indexOf("Error") > -1
+    expect(target.callCount).to.equal(methods)
+    target.restore()
+
   describe "#pluginInit()", ->
     beforeEach ->
       sinon.stub(jQuery.fn, "append")
@@ -244,6 +256,11 @@ describe "Readmill", ->
       expect(readmill.element.find).was.called()
       expect(readmill.element.find).was.calledWith(".annotator-hl")
 
+    it "should not remove the annotations if options.removeAnnotations is false", ->
+      target = sinon.stub(readmill, "removeAnnotations")
+      readmill.disconnect(removeAnnotations: false)
+      expect(target).was.notCalled()
+
   describe "#error()", ->
     it "should display an error notifiaction", ->
       target = sinon.stub Annotator, "showNotification"
@@ -254,6 +271,25 @@ describe "Readmill", ->
 
   describe "#removeAnnotations()", ->
     it "should remove all annotations from the page"
+
+  describe "#_createUnauthorizedHandler()", ->
+    it "should return a new handler function", ->
+      target = readmill._createUnauthorizedHandler(->)
+      expect(target).to.be.a("function")
+
+    describe "handler()", ->
+      it "should handle an unauthorised response", ->
+        target = sinon.stub(readmill, "unauthorized")
+        callback = readmill._createUnauthorizedHandler(target)
+        callback(status: 401)
+        expect(target).was.called()
+
+      it "should call the parent callback if response is authorised", ->
+        target = sinon.stub()
+        callback = readmill._createUnauthorizedHandler(target)
+        callback(status: 200)
+        expect(target).was.called()
+        expect(target).was.calledWith(status: 200)
 
   describe "#_onConnectSuccess()", ->
     it "should call @connected() with the access token and additonal params", ->

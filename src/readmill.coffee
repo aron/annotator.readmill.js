@@ -62,6 +62,17 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @store  = new Readmill.Store
     @client = new Readmill.Client @options
 
+    # Rather than use CoffeeScript's scope binding for all the event handlers
+    # in this class (which generates a line of JavaScript per binding) we use a
+    # utilty function to manually bind all functions beginning with "_on" to
+    # the current scope.
+    Readmill.utils.proxyHandlers this
+
+    # Decorate all error handlers with a callback to check for unauthorised
+    # responses.
+    for own key, value of this when key.indexOf("Error") > -1
+      this[key] = @_createUnauthorizedHandler(value)
+
     token = options.accessToken or @store.get "access-token"
     @connected(token, silent: true) if token
     @unsaved = []
@@ -179,6 +190,26 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     unless options?.silent is true
       Annotator.showNotification "Successfully connected to Readmill"
 
+  # Public: Displays an unauthorized notification. Should be called when
+  # a user is required to reconnect with Readmill.
+  #
+  # Examples
+  #
+  #   readmill.unauthorized()
+  #
+  # Returns nothing.
+  unauthorized: ->
+    msg = "Not connected to Readmill, click here to connect"
+    Annotator.showNotification(msg)
+    @disconnect(removeAnnotations: false)
+
+    # Watch for the users clicks on the notifiaction banner.
+    notification = jQuery(".annotator-notice").one "click.readmill-auth", =>
+      @connect()
+    # Unbind the event listener manually after five seconds.
+    unbind = => notification.unbind(".readmill-auth")
+    setTimeout(unbind, 5000)
+
   # Public: Removes all traces of the user from the plugin.
   #
   # 1. Deauthorises the client instance.
@@ -190,10 +221,10 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #   jQuery("#logout").click -> readmill.disconnect()
   #
   # Returns nothing.
-  disconnect: =>
+  disconnect: (options={}) =>
     @client.deauthorize()
-    @store.remove "access-token"
-    @removeAnnotations()
+    @store.remove("access-token")
+    @removeAnnotations() unless options.removeAnnotations is false
 
   # Internal: Helper method for displaying error notifications.
   #
@@ -217,6 +248,24 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   removeAnnotations: ->
     @element.find(".annotator-hl").each ->
       jQuery(this).replaceWith this.childNodes
+
+  # Decorator method for error callbacks for client requests. Returns a wrapped
+  # function which handles 401 Unauthorized responses and requests the user to
+  # reconnect with Readmill.
+  #
+  # wrapped - The error handler to wrap.
+  #
+  # Examples
+  #
+  #   handler = readmill._createUnauthorizedHandler (jqXHR) ->
+  #     console.log "An error has occured."
+  #   readmill.me().error(handler)
+  #
+  # Returns a new callback function.
+  _createUnauthorizedHandler: (handler) ->
+    (jqXHR) =>
+      isUnauthorized = jqXHR and (jqXHR.status is 401 or jqXHR.status is 0)
+      if isUnauthorized then @unauthorized() else handler.apply(this, arguments)
 
   _onConnectSuccess: (params) ->
     @connected params.access_token, params
@@ -308,7 +357,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
       request.fail @_onAnnotationCreatedError
     else
       @unsaved.push annotation
-      @connect() unless @client.isAuthorized()
+      @unauthorized() unless @client.isAuthorized()
       unless @book.id
         @lookupBook().done => @_onAnnotationCreated(annotation)
 
