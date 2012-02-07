@@ -105,11 +105,11 @@ Readmill client id.
 
 There is a _Makefile_ containing useful commands included.
 
-    $ make serve # serves the directory at http://localhost:8000 (requires python)
-    $ make watch # compiles .coffee files into lib/*.js when they change
-    $ make build # creates a production lib/annotator.readmill.js file
-    $ make proxy # runs the proxy server locally at http://localhost:8080
-    $ make pkg   # creates a zip file of production files
+    $ cake serve # serves the directory at http://localhost:8000 (requires python)
+    $ cake watch # compiles .coffee files into lib/*.js when they change
+    $ cake build # creates a production lib/annotator.readmill.js file
+    $ cake proxy # runs the proxy server locally at http://localhost:8080
+    $ cake pkg   # creates a zip file of production files
 
 [#node]: http://nodejs.org/
 
