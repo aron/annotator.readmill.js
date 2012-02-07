@@ -7,18 +7,50 @@ describe "View", ->
     view = new View
     sinon.stub(view, "publish")
 
-
-  it "should be an instance of View", ->
-    expect(view).to.be.an.instanceof View
+  it "should be an instance of Annotator.Class", ->
+    expect(view).to.be.an.instanceof Annotator.Class
 
   it "should have a @element containing a <div>", ->
     expect(view.element.get(0).tagName).to.equal("DIV")
+
+  describe "#isPrivate()", ->
+    it "should return false if the checkbox is checked", ->
+      expect(view.isPrivate()).to.equal(false)
+
+    it "should return true if the checkbox is checked", ->
+      view.element.find("input").attr("checked", "checked")
+      expect(view.isPrivate()).to.equal(true)
 
   describe "#connect()", ->
     it "should publish the \"connect\" event", ->
       view.connect()
       expect(view.publish).was.called()
       expect(view.publish).was.calledWith("connect")
+
+  describe "#reading()", ->
+    it "should update the connect button", ->
+      target = sinon.stub(view, "updateState")
+      view.reading()
+      expect(target).was.called()
+      expect(target).was.calledWith(view.states.FINISH_READING)
+
+    it "should publish the \"reading\" event", ->
+      view.reading()
+      expect(view.publish).was.called()
+      expect(view.publish).was.calledWith("reading")
+
+  describe "#finish()", ->
+    beforeEach ->
+      sinon.stub(view, "login")
+
+    it "should reset the view to login state", ->
+      view.finish()
+      expect(view.login).was.called()
+
+    it "should publish the \"reading\" event", ->
+      view.finish()
+      expect(view.publish).was.called()
+      expect(view.publish).was.calledWith("finish")
 
   describe "#disconnect()", ->
     it "should publish the \"disconnect\" event", ->
@@ -93,9 +125,8 @@ describe "View", ->
       el = view.element
       view.updateUser(user)
 
-      expect(el.find(".annotator-readmill-fullname").html()).to.equal(user.fullname)
-      expect(el.find(".annotator-readmill-username").html()).to.equal(user.username)
       expect(el.find(".annotator-readmill-avatar").attr("href")).to.equal(user.permalink_url)
+      expect(el.find(".annotator-readmill-avatar").attr("title")).to.equal("#{user.fullname} (#{user.username})")
       expect(el.find(".annotator-readmill-avatar img").attr("src")).to.equal(user.avatar_url)
 
   describe "#updateBook()", ->
@@ -113,6 +144,28 @@ describe "View", ->
       el = view.element
       view.updateBook()
       expect(el.find(".annotator-readmill-book").html()).to.equal("Loading book…")
+
+  describe "updateState()", ->
+    it "should update the hash and html of the connect link", ->
+      target = view.element.find(".annotator-readmill-connect a")
+      map = {}
+      map[view.states.CONNECT]        = "Connect With Readmill…"
+      map[view.states.START_READING]  = "Begin Reading…"
+      map[view.states.FINISH_READING] = "Finish Reading…"
+
+      for key, state of view.states
+        view.updateState(state)
+        expect(target[0].hash).to.equal("#" + state)
+        expect(target.html()).to.equal(map[state])
+
+  describe "#updatePrivate()", ->
+    it "should add the @classes.private class if isPrivate is true"
+    it "should remove the @classes.private class if isPrivate is false"
+    it "should check the checkbox if isPrivate is true"
+    it "should uncheck the checkbox if isPrivate is false"
+    it "should do nothing if the checkbox state is unchanged"
+    it "should allow options.force to bypass the check"
+    it "should trigger the \"private\" event"
 
   describe "#render()", ->
     it "should call @updateBook()", ->
@@ -133,18 +186,33 @@ describe "View", ->
 
     beforeEach ->
       event = jQuery.Event()
+      event.target = {hash: "#connect"}
       sinon.stub(event, "preventDefault")
       sinon.stub(view, "connect")
 
-    it "should call @connect()", ->
+    it "should call @connect() if the hash equals #connect", ->
       view._onConnectClick(event)
       expect(view.connect).was.called()
+
+    it "should call @reading() if the hash equals #start", ->
+      event.target.hash = "#start"
+      target = sinon.stub(view, "reading")
+      view._onConnectClick(event)
+      expect(target).was.called()
+
+    it "should call @login() if the hash equals #finish", ->
+      sinon.stub(window, "confirm").returns(true)
+      event.target.hash = "#finish"
+      target = sinon.stub(view, "login")
+      view._onConnectClick(event)
+      expect(target).was.called()
+      window.confirm.restore()
 
     it "should prevent the default browser action", ->
       view._onConnectClick(event)
       expect(event.preventDefault).was.called()
 
-  describe "#_onUpdateClick()", ->
+  describe "#_onLogoutClick()", ->
     event = null
 
     beforeEach ->
@@ -157,6 +225,37 @@ describe "View", ->
       expect(view.disconnect).was.called()
 
     it "should prevent the default browser action", ->
-      view._onConnectClick(event)
+      view._onLogoutClick(event)
       expect(event.preventDefault).was.called()
+
+  describe "#_onCheckboxChange()", ->
+    event = null
+
+    beforeEach ->
+      event = jQuery.Event()
+      event.target = checked: true
+
+    it "should update the private checkbox state", ->
+      sinon.stub(view, "updatePrivate")
+      view._onCheckboxChange(event)
+      target = view.element.find('label').hasClass(view.classes.checked)
+      expect(view.updatePrivate).was.called()
+      expect(view.updatePrivate).was.calledWith(true)
+
+    it "should add @classes.checked to the label is checked", ->
+      view._onCheckboxChange(event)
+      target = view.element.find('label').hasClass(view.classes.checked)
+      expect(target).to.equal(true)
+
+    it "should remove @classes.checked to the label is not checked", ->
+      event.target.checked = false
+      view._onCheckboxChange(event)
+      target = view.element.find('label').hasClass(view.classes.checked)
+      expect(target).to.equal(false)
+
+    it "should publish the \"privacy\" event", ->
+      view._onCheckboxChange(event)
+      expect(view.publish).was.called()
+      expect(view.publish).was.calledWith("privacy", [true, view])
+
 

@@ -26,6 +26,15 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     "annotationUpdated": "_onAnnotationUpdated"
     "annotationDeleted": "_onAnnotationDeleted"
 
+  # Default options for the class.
+  options:
+    # Gets a unique identifier for this page. This allows a book to be spread
+    # over multiple html pages but retain a single resource on Readmill. By
+    # default this is the page URI up to the query string.
+    #
+    # Returns a unique id for the page.
+    getPage: -> window.location.href.split('?').shift()
+
   # Initialises the plugin instance and sets up properties.
   #
   # element - The root Annotator element.
@@ -34,17 +43,12 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #           clientId    - The client id string for the service.
   #           callbackUrl - A full url pointing to the callback.html file.
   #           accessToken - A pre activated accessToken (optional).
+  #           getPage     - A function that returns a page id (optional).
   #
   # Returns nothing.
   # Raises an Error if any of the required arguments are missing.
   constructor: (element, options) ->
     super
-
-    # Rather than use CoffeeScript's scope binding for all the event handlers
-    # in this class (which generates a line of JavaScript per binding) we use a
-    # utilty function to manually bind all functions beginning with "_on" to
-    # the current scope.
-    Readmill.utils.proxyHandlers this
 
     # Ensure required options are provided.
     errors = (key for own key in ["book", "clientId", "callbackUrl"] when not options[key])
@@ -68,8 +72,16 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @store  = new Readmill.Store
     @client = new Readmill.Client @options
 
-    @view.subscribe "connect", @connect
-    @view.subscribe "disconnect", @disconnect
+    # Rather than use CoffeeScript's scope binding for all the event handlers
+    # in this class (which generates a line of JavaScript per binding) we use a
+    # utilty function to manually bind all functions beginning with "_on" to
+    # the current scope.
+    Readmill.utils.proxyHandlers this
+
+    # Decorate all error handlers with a callback to check for unauthorised
+    # responses.
+    for own key, value of this when key.indexOf("Error") > -1
+      this[key] = @_createUnauthorizedHandler(value)
 
     token = options.accessToken or @store.get "access-token"
     @connected(token, silent: true) if token
@@ -80,6 +92,12 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #
   # Returns nothing.
   pluginInit: ->
+    @view.on "reading",    @lookupReading
+    @view.on "finish",     @endReading
+    @view.on "privacy",    @updatePrivacy
+    @view.on "connect",    @connect
+    @view.on "disconnect", @disconnect
+
     jQuery("body").append @view.render()
     @lookupBook()
 
@@ -114,11 +132,38 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #   request.done -> console.log request.reading.id
   #
   # Returns a jQuery.Deferred() promise.
-  lookupReading: ->
+  lookupReading: =>
     @lookupBook().done =>
-      data = {state: Readmill.Client.READING_STATE_OPEN}
-      request = @client.createReadingForBook @book.id, data
+      request = @client.createReadingForBook @book.id,
+        state: Readmill.Client.READING_STATE_OPEN
+        private: @view.isPrivate()
       request.then(@_onCreateReadingSuccess, @_onCreateReadingError)
+
+  # Public: Ends the current reading session if one exists by marking
+  # the book as finished.
+  #
+  # Examples
+  #
+  #   readmill.endReading()
+  #
+  # Returns a jQuery.Deferred() promise.
+  endReading: =>
+    if @book.reading
+      @client.updateReading @book.reading.uri,
+        state: Readmill.Client.READING_STATE_FINISHED
+      @removeAnnotations()
+      delete @book.reading
+
+  # Public: Updates the privacy of the reading depending on the status
+  # of the view.
+  #
+  # Returns jQuery.Deferred promise.
+  updatePrivacy: =>
+    isPrivate = @view.isPrivate()
+    if @book.reading and @book.reading.private isnt isPrivate
+      @book.reading.private = isPrivate
+      request = @client.updateReading(@book.reading.uri, private: isPrivate)
+      request.fail(@_onUpdatePrivacyError)
 
   # Public: Begins the Readmill authentication flow.
   #
@@ -155,6 +200,26 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     unless options?.silent is true
       Annotator.showNotification "Successfully connected to Readmill"
 
+  # Public: Displays an unauthorized notification. Should be called when
+  # a user is required to reconnect with Readmill.
+  #
+  # Examples
+  #
+  #   readmill.unauthorized()
+  #
+  # Returns nothing.
+  unauthorized: ->
+    msg = "Not connected to Readmill, click here to connect"
+    Annotator.showNotification(msg)
+    @disconnect(removeAnnotations: false)
+
+    # Watch for the users clicks on the notifiaction banner.
+    notification = jQuery(".annotator-notice").one "click.readmill-auth", =>
+      @connect()
+    # Unbind the event listener manually after five seconds.
+    unbind = => notification.unbind(".readmill-auth")
+    setTimeout(unbind, 5000)
+
   # Public: Removes all traces of the user from the plugin.
   #
   # 1. Deauthorises the client instance.
@@ -166,11 +231,10 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   #   jQuery("#logout").click -> readmill.disconnect()
   #
   # Returns nothing.
-  disconnect: =>
+  disconnect: (options={}) =>
     @client.deauthorize()
-    @store.remove "access-token"
-    @element.find(".annotator-hl").each ->
-      jQuery(this).replaceWith this.childNodes
+    @store.remove("access-token")
+    @removeAnnotations() unless options.removeAnnotations is false
 
   # Internal: Helper method for displaying error notifications.
   #
@@ -184,6 +248,35 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
   error: (message) ->
     Annotator.showNotification message, Annotator.Notification.ERROR
 
+  # Internal: Removes all annotations from the current page.
+  #
+  # Examples
+  #
+  #   readmill.removeAnnotations()
+  #
+  # Returns nothing.
+  removeAnnotations: ->
+    @element.find(".annotator-hl").each ->
+      jQuery(this).replaceWith this.childNodes
+
+  # Decorator method for error callbacks for client requests. Returns a wrapped
+  # function which handles 401 Unauthorized responses and requests the user to
+  # reconnect with Readmill.
+  #
+  # wrapped - The error handler to wrap.
+  #
+  # Examples
+  #
+  #   handler = readmill._createUnauthorizedHandler (jqXHR) ->
+  #     console.log "An error has occured."
+  #   readmill.me().error(handler)
+  #
+  # Returns a new callback function.
+  _createUnauthorizedHandler: (handler) ->
+    (jqXHR) =>
+      isUnauthorized = jqXHR and (jqXHR.status is 401 or jqXHR.status is 0)
+      if isUnauthorized then @unauthorized() else handler.apply(this, arguments)
+
   _onConnectSuccess: (params) ->
     @connected params.access_token, params
 
@@ -192,7 +285,6 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
 
   _onMeSuccess: (data) ->
     @user = data
-    @lookupReading()
 
   _onMeError: () ->
     @error "Unable to fetch user info from Readmill"
@@ -218,8 +310,17 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     else
       @error "Unable to create a reading for this book"
 
+  # Public: Callback handler for failiure to update the privacy value.
+  #
+  # jqXHR - The jqXHR object for the failed request.
+  #
+  # Returns nothing.
+  _onUpdatePrivacyError: (jqXHR) ->
+    @error "Unable to update the privacy state for this book"
+
   _onGetReadingSuccess: (reading) ->
     @book.reading = reading
+    @view.updateBook(@book)
     request = @client.getHighlights(reading.highlights)
     request.then @_onGetHighlightsSuccess, @_onGetHighlightsError
 
@@ -240,31 +341,36 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @error "Unable to fetch highlights for reading"
 
   _onCreateHighlight: (annotation, data) ->
-    # Now try and get a permalink for the comment by fetching the first
-    # comment for the newly created highlight.
+    # Now fetch the highlight resource in order to get the required
+    # urls for the highlight, comments and comment resources.
     @client.request(url: data.location).done (highlight) =>
       # Need to store this rather than data.location in order to be able to
       # delete the highlight at a later date.
+      annotation.id = highlight.id
       annotation.highlightUrl = highlight.uri
-      annotation.commentsUrl = highlight.comments
-      @client.request(url: highlight.comments).done (comments) ->
-        annotation.commentUrl = comments[0].uri if comments.length
+      annotation.commentsUrl  = highlight.comments
+
+      # Now create the comment for the highlight. We can do this using the
+      # @_onAnnotationUpdated() method which does this anyway. This should
+      # probably be moved out the callback methods in a later refactor.
+      @_onAnnotationUpdated(annotation) if annotation.text
+
+  _onBeforeAnnotationCreated: (annotation) ->
+    annotation.page = @options.getPage()
 
   _onAnnotationCreated: (annotation) ->
     if @client.isAuthorized() and @book.id and @book.reading?.highlights
       url = @book.reading.highlights
-      utils = Readmill.utils
+      highlight = Readmill.utils.highlightFromAnnotation annotation
 
-      # Need a text string here rather than an object here for some reason.
-      comment   = utils.commentFromAnnotation(annotation).content
-      highlight = utils.highlightFromAnnotation annotation
-
-      request = @client.createHighlight url, highlight, comment
+      # We don't create the comment here as we can't easily access the url
+      # permalink. The comment is instead created in the success callback.
+      request = @client.createHighlight url, highlight
       request.done jQuery.proxy(this, "_onCreateHighlight", annotation)
       request.fail @_onAnnotationCreatedError
     else
       @unsaved.push annotation
-      @connect() unless @client.isAuthorized()
+      @unauthorized() unless @client.isAuthorized()
       unless @book.id
         @lookupBook().done => @_onAnnotationCreated(annotation)
 

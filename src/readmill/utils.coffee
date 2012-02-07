@@ -86,9 +86,14 @@ Annotator.Readmill.utils = do ->
   highlightFromAnnotation: (annotation) ->
     # See: https://github.com/Readmill/API/wiki/Readings
     {
-      pre: JSON.stringify(annotation.ranges)
+      id: annotation.id
       content: annotation.quote
       highlighted_at: undefined
+      locators:
+        annotator: JSON.stringify(
+          ranges: annotation.ranges
+          page: annotation.page
+        )
     }
 
   # Public: Takes an annotation object and returns an object suitable for
@@ -128,14 +133,18 @@ Annotator.Readmill.utils = do ->
   #
   # Returns a jQuery.Deferred() promise.
   annotationFromHighlight: (highlight, client) ->
-    ranges = try JSON.parse(highlight.pre) catch e then null
+    # Try and extract annotation metadata from the locators object.
+    meta = try JSON.parse(highlight.locators.annotator) catch e then null
+    meta = (try {range: JSON.parse(highlight.pre)} catch e then null) unless meta
     deferred = new jQuery.Deferred()
 
-    if ranges
+    if meta
       annotation =
+        id: highlight.id
+        page: meta.page
         quote: highlight.content
         text: ""
-        ranges: ranges
+        ranges: meta.ranges
         highlightUrl: highlight.uri
         commentUrl: ""
         commentsUrl: highlight.comments

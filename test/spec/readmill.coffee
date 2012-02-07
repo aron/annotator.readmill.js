@@ -47,6 +47,22 @@ describe "Readmill", ->
         callbackUrl: "http://localhost/callback.html"
     expect(target).to.throw(Error)
 
+  it "should wrap all methods with 'Error' in the name with a 401 handler", ->
+    target = sinon.stub(Readmill.prototype, "_createUnauthorizedHandler")
+    new Readmill $("<div />"),
+      book: {}
+      clientId: "12345"
+      callbackUrl: "http://localhost/callback.html"
+    
+    methods = 0
+    methods++ for key, value of Readmill.prototype when key.indexOf("Error") > -1
+    expect(target.callCount).to.equal(methods)
+    target.restore()
+
+  it "should have a default options.getPage() function", ->
+    expected = window.location.href.split("?").shift()
+    expect(readmill.options.getPage()).to.equal(expected)
+
   describe "#pluginInit()", ->
     beforeEach ->
       sinon.stub(jQuery.fn, "append")
@@ -63,6 +79,13 @@ describe "Readmill", ->
     it "should call @lookupBook", ->
       readmill.pluginInit()
       expect(readmill.lookupBook).was.called()
+
+    it "should register view event listeners", ->
+      target = sinon.stub(readmill.view, "on")
+      readmill.pluginInit()
+      expect(readmill.view.on).was.calledWith("reading",    readmill.lookupReading)
+      expect(readmill.view.on).was.calledWith("connect",    readmill.connect)
+      expect(readmill.view.on).was.calledWith("disconnect", readmill.disconnect)
 
   describe "#lookupBook()", ->
     promise = null
@@ -121,6 +144,39 @@ describe "Readmill", ->
       bookPromise.done.args[0][0]()
       expect(readingPromise.then).was.called()
       expect(readingPromise.then).was.calledWith(readmill._onCreateReadingSuccess, readmill._onCreateReadingError)
+
+  describe "#endReading()", ->
+    it "should remove the reading property from @book"
+    it "should tell Readmill the book is finished"
+    it "should remove all annotations from the page"
+
+  describe "#updatePrivacy()", ->
+    promise = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      sinon.stub(readmill.client, "updateReading").returns(promise)
+
+    it "should update the privacy depending on the view state", ->
+      readmill.book.reading = {uri: "http://"}
+      sinon.stub(readmill.view, "isPrivate").returns(true)
+
+      readmill.updatePrivacy()
+      expect(readmill.view.isPrivate).was.called()
+      expect(readmill.client.updateReading).was.called()
+      expect(readmill.client.updateReading).was.calledWith("http://", private: true)
+
+    it "should register an error handler", ->
+      readmill.book.reading = {uri: "http://"}
+      sinon.stub(readmill.view, "isPrivate").returns(true)
+
+      readmill.updatePrivacy()
+      expect(promise.fail).was.called()
+      expect(promise.fail).was.calledWith(readmill._onUpdatePrivacyError)
+
+    it "should do nothing if there is no reading", ->
+      readmill.updatePrivacy()
+      expect(readmill.client.updateReading).was.notCalled()
 
   describe "#connect()", ->
     promise = null
@@ -204,6 +260,11 @@ describe "Readmill", ->
       expect(readmill.element.find).was.called()
       expect(readmill.element.find).was.calledWith(".annotator-hl")
 
+    it "should not remove the annotations if options.removeAnnotations is false", ->
+      target = sinon.stub(readmill, "removeAnnotations")
+      readmill.disconnect(removeAnnotations: false)
+      expect(target).was.notCalled()
+
   describe "#error()", ->
     it "should display an error notifiaction", ->
       target = sinon.stub Annotator, "showNotification"
@@ -211,6 +272,28 @@ describe "Readmill", ->
       expect(target).was.called()
       expect(target).was.calledWith("message")
       target.restore()
+
+  describe "#removeAnnotations()", ->
+    it "should remove all annotations from the page"
+
+  describe "#_createUnauthorizedHandler()", ->
+    it "should return a new handler function", ->
+      target = readmill._createUnauthorizedHandler(->)
+      expect(target).to.be.a("function")
+
+    describe "handler()", ->
+      it "should handle an unauthorised response", ->
+        target = sinon.stub(readmill, "unauthorized")
+        callback = readmill._createUnauthorizedHandler(target)
+        callback(status: 401)
+        expect(target).was.called()
+
+      it "should call the parent callback if response is authorised", ->
+        target = sinon.stub()
+        callback = readmill._createUnauthorizedHandler(target)
+        callback(status: 200)
+        expect(target).was.called()
+        expect(target).was.calledWith(status: 200)
 
   describe "#_onConnectSuccess()", ->
     it "should call @connected() with the access token and additonal params", ->
@@ -236,14 +319,10 @@ describe "Readmill", ->
       readmill._onMeSuccess(user)
       expect(readmill.user).to.equal(user)
 
-    it "should get the reading for the current book", ->
-      readmill._onMeSuccess({})
-      expect(readmill.lookupReading).was.called()
-
   describe "#_onMeError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onMeError()
+      readmill._onMeError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch user info from Readmill")
 
@@ -259,7 +338,7 @@ describe "Readmill", ->
   describe "#_onBookError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onBookError()
+      readmill._onBookError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch book info from Readmill")
 
@@ -314,11 +393,16 @@ describe "Readmill", ->
     beforeEach ->
       reading = highlights: "http://api.readmill.com/reading/1/highlights"
       promise = sinon.createPromiseStub()
+      sinon.stub(readmill.view, "updateBook")
       sinon.stub(readmill.client, "getHighlights").returns(promise)
 
     it "should assign the reading to @book.reading", ->
       readmill._onGetReadingSuccess(reading)
       expect(readmill.book.reading).to.equal(reading)
+
+    it "should update the view with the reading", ->
+      readmill._onGetReadingSuccess(reading)
+      expect(readmill.view.updateBook).was.called()
 
     it "should request the highlights for the reading", ->
       readmill._onGetReadingSuccess(reading)
@@ -333,7 +417,7 @@ describe "Readmill", ->
   describe "#_onGetReadingError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onGetReadingError()
+      readmill._onGetReadingError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to create a reading for this book")
 
@@ -386,12 +470,45 @@ describe "Readmill", ->
   describe "#_onGetHighlightsError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onGetHighlightsError()
+      readmill._onGetHighlightsError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to fetch highlights for reading")
 
   describe "#_onCreateHighlight()", ->
-    it "should be refactored"
+    promise = null
+    annotation = null
+    response = null
+    highlight = null
+
+    beforeEach ->
+      promise = sinon.createPromiseStub()
+      annotation = text: "this is an annotation comment"
+      response = location: "http://api.readmill.com/highlight/1"
+      highlight =
+        id: "1"
+        uri: "http://api.readmill.com/highlight/1"
+        comments: "http://api.readmill.com/highlight/1/comments"
+
+      sinon.stub(readmill, "_onAnnotationUpdated")
+      sinon.stub(readmill.client, "request").returns(promise)
+
+    it "should request the newly created highlight", ->
+      readmill._onCreateHighlight(annotation, response)
+      expect(readmill.client.request).was.called()
+      expect(readmill.client.request).was.calledWith(url: response.location)
+
+    it "should store the id, commentsUrl and highlightUrl on the annotation", ->
+      readmill._onCreateHighlight(annotation, response)
+      promise.done.args[0][0](highlight)
+      expect(annotation).to.have.property("id", annotation.id)
+      expect(annotation).to.have.property("highlightUrl", annotation.uri)
+      expect(annotation).to.have.property("commentsUrl", annotation.comments)
+
+    it "should create the comment on the highlight", ->
+      readmill._onCreateHighlight(annotation, response)
+      promise.done.args[0][0](highlight)
+      expect(readmill._onAnnotationUpdated).was.called()
+      expect(readmill._onAnnotationUpdated).was.calledWith(annotation)
 
   describe "#_onAnnotationCreated()", ->
     promise = null
@@ -436,9 +553,9 @@ describe "Readmill", ->
       readmill._onAnnotationCreated(annotation)
       expect(readmill.unsaved).to.eql([annotation])
 
-    it "should call @connect if unauthed", ->
+    it "should notify the user that the plugin is not authorised", ->
       readmill.client.isAuthorized.returns(false)
-      target = sinon.stub readmill, "connect"
+      target = sinon.stub readmill, "unauthorized"
       readmill._onAnnotationCreated(annotation)
       expect(target).was.called()
 
@@ -451,7 +568,7 @@ describe "Readmill", ->
   describe "#_onAnnotationCreatedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationCreatedError()
+      readmill._onAnnotationCreatedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to save annotation to Readmill")
 
@@ -496,7 +613,7 @@ describe "Readmill", ->
   describe "#_onAnnotationUpdatedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationUpdatedError()
+      readmill._onAnnotationUpdatedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to update annotation in Readmill")
 
@@ -524,6 +641,6 @@ describe "Readmill", ->
   describe "#_onAnnotationDeletedError()", ->
     it "should call @error() with the error message", ->
       target = sinon.stub readmill, "error"
-      readmill._onAnnotationDeletedError()
+      readmill._onAnnotationDeletedError(status: 400)
       expect(target).was.called()
       expect(target).was.calledWith("Unable to delete annotation on Readmill")

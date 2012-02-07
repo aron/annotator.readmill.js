@@ -1,2 +1,4 @@
-lib/*.js
-lib/readmill/*.js
+/index.html
+/pkg
+/lib/*.js
+/lib/readmill/*.js

@@ -4,11 +4,12 @@ describe "utils", ->
   fakeProxy = null
   annotation = null
 
-
   beforeEach ->
     fakeProxy = ->
     sinon.stub(jQuery, "proxy").returns fakeProxy
     annotation =
+      id: 1
+      page: "http://page"
       ranges: []
       text: "This is an annotation comment"
       quote: "some highlighted text"
@@ -72,8 +73,9 @@ describe "utils", ->
   describe "#highlightFromAnnotation()", ->
     it "should parse the annotation and return a highlight", ->
       target = utils.highlightFromAnnotation(annotation)
-      expect(target).to.have.property("pre", "[]")
+      expect(target).to.have.property("locators").to.have.property("annotator", '{"ranges":[],"page":"http://page"}')
       expect(target).to.have.property("content", annotation.quote)
+      expect(target).to.have.property("id", annotation.id)
 
   describe "#commentFromAnnotation()", ->
     it "should parse the annotation and return a comment", ->
@@ -87,7 +89,8 @@ describe "utils", ->
 
     beforeEach ->
       highlight =
-        pre: "[]"
+        id: 1
+        locators: {annotator: '{"ranges": [], "page": "http://page"}'}
         uri: "http://api.readmill.com/highlight/1"
         content: "A nice piece of highlighted text"
         comments: "http://api.readmill.com/highlight/1/comments"
@@ -119,9 +122,17 @@ describe "utils", ->
       target.done (annotation) ->
         expect(annotation.text).to.equal("a")
         expect(annotation.commentUrl).to.equal("1")
+        expect(annotation.page).to.equal("http://page")
+        expect(annotation.ranges).to.eql([])
       promise.done.args[0][0]([{content: "a", uri: "1"}, {content: "b", uri: "2"}])
 
     it "should call reject immediately if parsing fails", ->
-      highlight.pre = ""
+      highlight.locators = {}
       target = utils.annotationFromHighlight(highlight, client)
       expect(target.state()).to.equal("rejected")
+
+    it "should fallback to parsing the \"pre\" token", ->
+      highlight.pre = "[]"
+      target = utils.annotationFromHighlight(highlight, client)
+      target.done (annotation) ->
+        expect(annotation.ranges).to.eql([])
