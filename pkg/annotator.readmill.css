@@ -1,0 +1,130 @@
+/*  Readmill Annotator Plugin - v0.2.0
+ *  Copyright 2011, Aron Carroll
+ *  Released under the MIT license
+ *  More Information: http://github.com/aron/readmill.annotator.js
+ */
+.annotator-readmill {
+	font-family: "ScalaRegular", Georgia, Times, serif;
+	text-align: left;
+	position: fixed;
+	top: 0;
+	right: 0;
+	min-width: 100px;
+	min-height: 30px;
+	padding: 9px 18px 9px 48px;
+	background: #052336 url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6Mjk4MDE1NUIyNEVCMTFFMUJBRjdGREQxQjcxMTk2MDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6Mjk4MDE1NUMyNEVCMTFFMUJBRjdGREQxQjcxMTk2MDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDoyOTgwMTU1OTI0RUIxMUUxQkFGN0ZERDFCNzExOTYwMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDoyOTgwMTU1QTI0RUIxMUUxQkFGN0ZERDFCNzExOTYwMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PjjVbOEAAANKSURBVHjaxJdfSFRBFMbv7oogGWKxkRj4Uvi0YQoFsRAYhrC++CBCZBQ9RNGDKYZLQiSJYUg9RA9BFPRUSj3kDVEKRDMKpHArsgzRNKql8L+p7d6+2b6J4Tp33atUAz+cnTtzvjtnzjlz9ViWZfyP5lX6dWAGLIIuUA8K1mF7O6gBHbRr0WaieZQdz4MMjYEo6AEm6AYTDkKbQDEoJbmaObNgY6InhIlsp0AzGLT07f3kwpfW6geBUvR94AR45jD3NW3VK2MJPZ1wQBnzg0pwE4zLCbF4bKbWLLTwAh9sQt9AG6gCuYqdoF3Yu8o5CTffAUfBNrADNFhGfD4WXzY6313LgZlpjDWCPWAzqAC3kxzJiuBSWwi8BS3sy7MfBk33XjUfFD8GJsyM9kjTcXTPgeeck8E1LbQRciMsWj4jXUaljHR//2jbVzFhObZo9I/eHRdjfNbFuR1cm+9kPM1hvA+cAftIJighETBmm78bNNuit4cIW4FUhafAJeKjeDFxak/BYyIEY8nOOC2JmwM0EFUMymbfgUnU5ucLR9wIi6rTxv4AC4fcyZLDmnTFM+JIijheRg+m7OrPYCsNFDF4hOh+jaEgeERxezpOuYlqERA5YBcIc8dLNJylmZ/FZ0ucG+baLbSVsqtle0kuMj+FK99oxCN0qTiOBbe3k72A9ILzSiQLg52aVDI4ZiqixVzb61RAku04SNS8FDu64eDqYxSUeW+sJZ1EJDfYDIXIkGbX4gVbld8x5UUHmCUpCYuIbiKZFC9xcptSx+Wd3UMvqenpKDxLkTreSHLxrFIgql0UEJnbwmuVisYK4avM1SqiuqtbuX1WawX8ApHHpOb2dZ1wmDkngyRLqc8X1E+gvXkVH3FD/VbJOSBK4xFFzG97kQW+/C3Qrvvm0kW1LH9B9YFlxWdqzILEt1Nr6MWc1+PboMl/U/FYzE069ZFGZfcywLL/hG/85w+vzzdJAZN/o2stILrafR+cBHlzy1OF8rK48uTQQ34WHWZQRtdTuZK2zPTsYZZO49P0UPnpjp25bm143P4nARHZFQF3Vik44iNv5HLZoPHXdqykhnD3CKgF390sTluH8BhzP5/Ra/wrYZn75WtZ+EuAAQCviMBG69yMXwAAAABJRU5ErkJggg==') no-repeat 9px 11px;
+}
+
+.annotator-readmill-logged-in {
+	padding-right: 57px;
+}
+
+.annotator-readmill a,
+.annotator-readmill div {
+	text-wrap: no-wrap;
+	font-size: 13px;
+	line-height: 1.3;
+	color: #fff;
+}
+
+.annotator-readmill a {
+	text-decoration: none;
+}
+
+.annotator-readmill a:hover {
+	text-decoration: underline;
+}
+
+.annotator-readmill-connect a {
+	font-size: 11px;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.annotator-readmill-avatar {
+	position: absolute;
+	display: none;
+	left: 9px;
+	top: 9px;
+	width: 30px;
+	height: 30px;
+}
+
+.annotator-readmill-logged-in .annotator-readmill-avatar {
+	display: block;
+}
+
+.annotator-readmill-avatar:hover {
+	text-decoration: none;
+}
+
+.annotator-readmill img {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.annotator-readmill-reading label {
+	display: none;
+	width: 14px;
+	height: 14px;
+	cursor: pointer;
+	text-indent: -999em;
+	margin-left: 8px;
+	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAABUCAYAAACyXQZAAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6RDU5Mzc0OUMzMERCMTFFMUJDNkI5Q0VDNjQ4Qzg4RkEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6RDU5Mzc0OUQzMERCMTFFMUJDNkI5Q0VDNjQ4Qzg4RkEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo2Mzk3MENFQjMwRDAxMUUxQkM2QjlDRUM2NDhDODhGQSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo2Mzk3MENFQzMwRDAxMUUxQkM2QjlDRUM2NDhDODhGQSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PiYnJTgAAAStSURBVHja7JddbNtUFMf/sZ00SRGaNNI16yftNME7YkibpjG2aqiVSqvyMWCCIR6RJu2Fd55AIJ4QEmxANYmNjpd1tNU00q0F0tF27bSiCoqqFbIkS9dt0ObTSR1z7o1N7cRJPISmPuxIf9n33HOce53zs48d3w4HYDAf6RjpIOlpkkKaIl0gfUxK6IEOQ+LLpJOkR2BtS6SjpHE2EDTnq6RvKiQxe5w0RuphA4nUQPqsOEpVVVybX8B3gR/g9brRe2g/2psb2dQpUgv7xXesfimdkTE+OcPP//p7DT/PzulTLPY4S+yzWlc4dhvR5RUce+swXujYh7nfFo3TnWypzfooQsHrigKnJCEUuQVJFCE4HGhraURbc4Npv5Jx9NHnp7AaT8LllJDNrUPOZjH4/TiO9HbiSE+nMVRkiSHSDjaKJ1PIyDKXbhk5y49ej9uYuMj2OKyP8nkVpXc3b3ULhlnih+wmspHL5YQoCHDSUtk+2R4lSSpOYtXziV45b5K+gj17jXRauqoeYIP+pxz8Ap+SPGUS2KrepvjTxpIDOfrp8IRWzEtFNfo+qU1P0ksOhuS0duUVrTYZHTHNlzDGOt4dwiahA/SX3pjfgulRP2o8Cp45FEF9c7I6HXJGxPyUr/DHrbqwMLvVHh13Yx7cW3aj6+gidnVE8efCo+XpYMF5xUEVnMedqBeCqILgoCUmsK0pWZ6OwRM7kYpLEJ0qlJwDuayIqYAf+3pCXEY6BI2OQmkkCSdZRDpRONLTAzk6MmM3qCwdViCoKqrTIbnyEAQVkjNP+1Qh0h7ZPi3p0Crn/umo9fNBf/IWbNFB8WY6yFGVDj2phA6asE/HezObiY7fZ7dgYtAPd62CvX0RbG+3QUcmJeL6WIGO+D0X5ids0nEn7MHdiBt9xxexpzeKG9cr0LES3qBjOeTl1cPo2N6e0JdpTcfABzuRXKMHMdGxzuggmIPn/Oh4I8RVng5GRVpEaq1wZAWezWh0eJVK7w4LOvI26HAyOkSNDlouJ0QqQ4dWOfdPx5Mx/s7o/7X+gC06KN5MBzmq0qEnldBBE/bp2Byd1R/hKM6cv1C4YvfzaGnwG6et6WAtypcDg2jyb+P6YuAc9xnMmg45m0Mqk8FLXR14sbODt2bZXK542WY6mF2+Mo21eAJnhy7y8SqdXwpOo5vasrJ0MGNBiVQaI5eD//oCwcniRDMdeq9TbDUuV7HLTEeBkFIclFKfmQ69Z/O4a0yqNfdxDzurB0vH7bAXP55v4ud7u2/C15CqTkcuK2D0bCse86e5AnTOfFXpWKcgOSNhd1cYuzvD/IG8nhOq0/HLlTreJAWH+OcQknEn5ibqsOtgtDIdcxM+esVJmBmr3/D9VJJYSgd7mhebsyZvhw5HSWJeQXU6WM/mcptV9KZ62Fk9WDpiS16Mfl2g47nXb6K+1Q4dsoCRk63wNaW5Rk60cl9VOliQTLW6/3AYz74S5m1LEVbWdFwbrUNyVcKlM43aV44Ts4E67OmpQsdswMcbpcnhDTpmLpYkWtBRSgLVqx06lP9KBzW1jBCTapX/r7PS73O/Vk7pCglpPclEh5ZckQ49idk/AgwA+Nh1Ro5MVOYAAAAASUVORK5CYII=') no-repeat 0 0;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+}
+
+.annotator-readmill-reading label:hover,
+.annotator-readmill-reading label:focus {
+	background-position: 0 -14px;
+}
+
+.annotator-readmill-reading label:active {
+	background-position: 0 -28px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked {
+	background-position: 0 -42px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked:hover,
+.annotator-readmill-reading label.annotator-readmill-checked:focus {
+	background-position: 0 -56px;
+}
+
+.annotator-readmill-reading label.annotator-readmill-checked:active {
+	background-position: 0 -70px;
+}
+
+.annotator-readmill-logged-in label {
+	display: inline-block;
+}
+
+.annotator-readmill-reading input[type=checkbox] {
+	display: none;
+}
+
+.annotator-readmill-logout {
+	position: absolute;
+	top: 0;
+	right: 0;
+	display: none;
+	border-left: 1px solid rgba(255, 255, 255, 0.3);
+	width: 48px;
+	height: 48px;
+}
+
+.annotator-readmill-logged-in .annotator-readmill-logout {
+	display: table;
+}
+
+.annotator-readmill-logout a {
+	display: table-cell;
+	vertical-align: middle;
+	font-size: 11px;
+	text-align: center;
+	text-transform: uppercase;
+}
