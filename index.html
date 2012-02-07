@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <title>Readmill Annotator Plugin</title>
-  <link rel="stylesheet" href="./lib/vendor/annotator.css" media="screen" />
-  <link rel="stylesheet" href="./css/annotator.readmill.css" media="screen" />
+  <link rel="stylesheet" href="./vendor/annotator.css" media="screen" />
+  <link rel="stylesheet" href="./pkg/annotator.readmill.css" media="screen" />
   <style type="text/css">
     body { text-align:justify}
     p { margin:15%;
@@ -4635,9 +4635,9 @@
 
 
   </pre>
-  <script src="./lib/vendor/jquery.js"></script>
-  <script src="./lib/vendor/annotator.js"></script>
-  <script src="./lib/annotator.readmill.min.js"></script>
+  <script src="./vendor/jquery.js"></script>
+  <script src="./vendor/annotator.js"></script>
+  <script src="./pkg/annotator.readmill.min.js"></script>
   <script>
     var annotator = jQuery('#book').annotator().annotator('addPlugin', 'Readmill', {
       book: {id: 59},
