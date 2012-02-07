@@ -21,23 +21,31 @@ Annotator.Readmill.View = class View extends Annotator.Class
   events:
     ".annotator-readmill-connect a click": "_onConnectClick"
     ".annotator-readmill-logout a click":  "_onLogoutClick"
+    "input[type=checkbox] change":         "_onCheckboxChange"
+
+  states:
+    CONNECT:        "connect"
+    START_READING:  "start"
+    FINISH_READING: "finish"
 
   # Classes used to manipulate view state.
   classes:
+    checked:  "annotator-readmill-checked"
+    reading:  "annotator-readmill-reading"
     loggedIn: "annotator-readmill-logged-in"
 
   # Template string for the inner html of the view.
   template: """
-  <a class="annotator-readmill-avatar" href="" target="_blank">
-    <img src="" />
+  <a class="annotator-readmill-avatar" target="_blank">
+    <img />
   </a>
-  <div class="annotator-readmill-user">
-    <span class="annotator-readmill-fullname"></span>
-    <span class="annotator-readmill-username"></span>
+  <div class="annotator-readmill-reading">
+    <a class="annotator-readmill-book" target="_blank"></a>
+    <input type="checkbox" id="annotator-readmill-private-reading" />
+    <label for="annotator-readmill-private-reading">Private Reading</label>
   </div>
-  <div class="annotator-readmill-book"></div>
   <div class="annotator-readmill-connect">
-    <a href="#">Connect with Readmill</a>
+    <a href="#connect">Connect with Readmill</a>
   </div>
   <div class="annotator-readmill-logout">
     <a href="#">Log Out</a>
@@ -50,6 +58,16 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # Returns nothing.
   constructor: ->
     super jQuery("<div class=\"annotator-readmill\"/>").html(@template)
+
+  # Public: Checks to see if the user has clicked the "privacy" button.
+  #
+  # Examples
+  #
+  #   setPrivateReading() if view.private()
+  #
+  # Returns true if the checkbox is checked.
+  isPrivate: ->
+    @element.find("input[type=checkbox]")[0].checked
 
   # Public: Triggers the "connect" event passing in the View instance to
   # all registered listeners. This is called when the user wishes to
@@ -94,8 +112,27 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # Returns itself.
   login: (user) ->
     @updateUser(user) if user
+    @updateState(@states.START_READING)
     @element.addClass @classes.loggedIn
     @publish "login", [this]
+
+  # Public: Switches the current view state to reading. This should be called
+  # once the user decides to start a reading session.
+  #
+  # Publishes the "reading" event once the view has updated. Passes true as the
+  # first argument to all callbacks if the reading is private.
+  #
+  # isPrivate - True if the user has determined this a private reading session.
+  #
+  # Returns itself.
+  reading: ->
+    @updateState(@states.FINISH_READING)
+    @publish "reading", [this]
+
+  finish: ->
+    @publish "finish", [this]
+    @login()
+    this
 
   # Public: Updates the view to the "logged out" state. Showing the connect
   # button. This should be called if the accessToken expires or the user
@@ -125,12 +162,13 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #
   # Returns itself.
   updateUser: (@user=@user) ->
-    el = @element
     if @user
-      el.find(".annotator-readmill-fullname").escape(@user.fullname)
-      el.find(".annotator-readmill-username").escape(@user.username)
-      el.find(".annotator-readmill-avatar").attr("href", @user.permalink_url)
-        .find("img").attr("src", @user.avatar_url)
+      attrs = 
+        href: @user.permalink_url
+        title: "#{@user.fullname} (#{@user.username})"
+
+      @element.find(".annotator-readmill-avatar").attr(attrs)
+              .find("img").attr("src", @user.avatar_url)
     this
 
   # Public: Updates the portion of the view that display book information.
@@ -145,8 +183,50 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #
   # Returns itself.
   updateBook: (@book=@book) ->
-    text = if @book then @book.title else "Loading book…"
-    @element.find(".annotator-readmill-book").escape(text)
+    text = "Loading book…"
+    target = @element.find(".annotator-readmill-book")
+    if @book
+      text = @book.title if @book.title
+      if @book.reading
+        @updatePrivate(@book.reading.private)
+        target.attr("href", @book.reading.permalink_url)
+    target.escape(text)
+    this
+
+  # Internal: Updates the current reading state.
+  #
+  # state - One of the @states constants.
+  #
+  # Returns itself.
+  updateState: (state) ->
+    map = {}
+    map[@states.CONNECT]        = "Connect With Readmill&hellip;"
+    map[@states.START_READING]  = "Begin Reading&hellip;"
+    map[@states.FINISH_READING] = "Finish Reading&hellip;"
+
+    @element.find(".annotator-readmill-connect a").html(map[state])
+            .attr("href", "#" + state)
+    this
+
+  # Public: Toggles the privacy checkbox.
+  #
+  # isPrivate - True if the checkbox should be checked (default: false).
+  # options   - Object literal of options for the method (default: {}).
+  #             force: Force an update, useful for updating the rest of the
+  #                    view when the checkbox changes.
+  #
+  # Examples
+  #
+  #   view.updatePrivate(true) # Check the checkbox
+  #   view.updatePrivate(false) # Check the checkbox
+  #   view.updatePrivate(false, force: true) # Force an update
+  #
+  # Returns itself.
+  updatePrivate: (isPrivate=false, options={}) ->
+    if isPrivate isnt @isPrivate() or options.force is true
+      @element.find("label").toggleClass(@classes.checked, isPrivate)
+      @element.find("input[type=checkbox]")[0].checked = isPrivate
+      @publish "privacy", [isPrivate, this]
     this
 
   # Public: Renders the full view. Should be called once the instance is
@@ -169,7 +249,13 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # Returns nothing.
   _onConnectClick: (event) =>
     event.preventDefault()
-    @connect()
+    switch event.target.hash.slice(1)
+     when @states.CONNECT then @connect()
+     when @states.START_READING then @reading()
+     when @states.FINISH_READING
+       msg = "Are you sure you wish to finish reading? This will remove all annotations from the page"
+       if window.confirm msg
+         @finish()
 
   # Callback for click events on the "logout" button.
   #
@@ -180,3 +266,12 @@ Annotator.Readmill.View = class View extends Annotator.Class
     event.preventDefault()
     @disconnect()
     @logout()
+
+  # Callback event for the privacy checkbox. Triggers the "privacy" event
+  # passing in true to all callbacks if the checkbox is checked.
+  #
+  # event - A jQuery.Event change event.
+  #
+  # Returns nothing.
+  _onCheckboxChange: (event) =>
+    @updatePrivate(event.target.checked, force: true)

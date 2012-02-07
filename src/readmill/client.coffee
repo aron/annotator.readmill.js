@@ -86,8 +86,15 @@ Annotator.Readmill.Client = class Client
   # reading - Object literal of reading options.
   #
   # Returns a jQuery.Deferred() promise.
-  createReadingForBook: (bookId, reading) ->
+  createReadingForBook: (bookId, reading={}) ->
+    # For some crazy reason the private flag needs to be coerced into
+    # a string for the API to accept it.
+    reading.private = String(reading.private) if reading.private
     @request type: "POST", url: "/books/#{bookId}/readings", data: {reading}
+
+  updateReading: (url, reading={}) ->
+    reading.private = String(reading.private) if reading.private
+    @request type: "PUT", url: url, data: {reading}
 
   # Public: Gets an array of highlight objects for the reading. The url can
   # be extracted from the "highlights" property of a reading.
