@@ -32,7 +32,7 @@ describe "View", ->
       target = sinon.stub(view, "updateState")
       view.reading()
       expect(target).was.called()
-      expect(target).was.calledWith(view.states.FINISH_READING)
+      expect(target).was.calledWith(view.states.NOW_READING)
 
     it "should publish the \"reading\" event", ->
       view.reading()
@@ -151,7 +151,7 @@ describe "View", ->
       map = {}
       map[view.states.CONNECT]        = "Connect With Readmill…"
       map[view.states.START_READING]  = "Begin Reading…"
-      map[view.states.FINISH_READING] = "Finish Reading…"
+      map[view.states.NOW_READING]    = "Now Reading…"
 
       for key, state of view.states
         view.updateState(state)
@@ -199,14 +199,6 @@ describe "View", ->
       target = sinon.stub(view, "reading")
       view._onConnectClick(event)
       expect(target).was.called()
-
-    it "should call @login() if the hash equals #finish", ->
-      sinon.stub(window, "confirm").returns(true)
-      event.target.hash = "#finish"
-      target = sinon.stub(view, "login")
-      view._onConnectClick(event)
-      expect(target).was.called()
-      window.confirm.restore()
 
     it "should prevent the default browser action", ->
       view._onConnectClick(event)

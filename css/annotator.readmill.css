@@ -36,6 +36,13 @@
 	text-transform: uppercase;
 }
 
+/* Disable the connect button when reading. */
+.annotator-readmill-connect a[href="#reading"]:hover,
+.annotator-readmill-connect a[href="#reading"]:active {
+	cursor: default;
+	text-decoration: none;
+}
+
 .annotator-readmill-avatar {
 	position: absolute;
 	display: none;

@@ -26,7 +26,7 @@ Annotator.Readmill.View = class View extends Annotator.Class
   states:
     CONNECT:        "connect"
     START_READING:  "start"
-    FINISH_READING: "finish"
+    NOW_READING:    "reading"
 
   # Classes used to manipulate view state.
   classes:
@@ -119,16 +119,21 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # Public: Switches the current view state to reading. This should be called
   # once the user decides to start a reading session.
   #
-  # Publishes the "reading" event once the view has updated. Passes true as the
-  # first argument to all callbacks if the reading is private.
-  #
-  # isPrivate - True if the user has determined this a private reading session.
+  # Publishes the "reading" event once the view has updated.
   #
   # Returns itself.
   reading: ->
-    @updateState(@states.FINISH_READING)
+    @updateState(@states.NOW_READING)
     @publish "reading", [this]
 
+  # Public: Switches the current view state to "finish". This should be called
+  # once a user decides to end a reading session.
+  #
+  # Publishes the "finish" event once the view has updated.
+  #
+  # param - comment
+  #
+  # Returns itself.
   finish: ->
     @publish "finish", [this]
     @login()
@@ -202,7 +207,7 @@ Annotator.Readmill.View = class View extends Annotator.Class
     map = {}
     map[@states.CONNECT]        = "Connect With Readmill&hellip;"
     map[@states.START_READING]  = "Begin Reading&hellip;"
-    map[@states.FINISH_READING] = "Finish Reading&hellip;"
+    map[@states.NOW_READING] = "Now Reading&hellip;"
 
     @element.find(".annotator-readmill-connect a").html(map[state])
             .attr("href", "#" + state)
@@ -252,10 +257,6 @@ Annotator.Readmill.View = class View extends Annotator.Class
     switch event.target.hash.slice(1)
      when @states.CONNECT then @connect()
      when @states.START_READING then @reading()
-     when @states.FINISH_READING
-       msg = "Are you sure you wish to finish reading? This will remove all annotations from the page"
-       if window.confirm msg
-         @finish()
 
   # Callback for click events on the "logout" button.
   #
