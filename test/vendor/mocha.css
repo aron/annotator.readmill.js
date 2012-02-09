@@ -1,6 +1,6 @@
 
 body {
-  font: 20px/1.5 "Helvetica Neue", Helvetica, Aria;, sans-serif;
+  font: 20px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
   padding: 60px 50px;
 }
 
@@ -38,6 +38,10 @@ body {
   content: '(view source)';
   font-size: 12px;
   color: #888;
+}
+
+#mocha .test.pending:hover h2::after {
+  content: '(pending)';
 }
 
 #mocha .test.pass::before {
@@ -99,15 +103,16 @@ body {
 
 #stats {
   position: fixed;
-  top: 30px;
-  right: 30px;
+  top: 15px;
+  right: 10px;
   font-size: 12px;
   margin: 0;
   color: #888;
 }
 
 #stats .progress {
-  margin-bottom: 10px;
+  float: right;
+  padding-top: 0;
 }
 
 #stats em {
@@ -115,5 +120,14 @@ body {
 }
 
 #stats li {
+  display: inline-block;
+  margin: 0 5px;
   list-style: none;
+  padding-top: 11px;
 }
+
+code .comment { color: #ddd }
+code .init { color: #2F6FAD }
+code .string { color: #5890AD }
+code .keyword { color: #8A6343 }
+code .number { color: #2F6FAD }
