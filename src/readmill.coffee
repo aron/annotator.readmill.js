@@ -83,7 +83,7 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     for own key, value of this when key.indexOf("Error") > -1
       this[key] = @_createUnauthorizedHandler(value)
 
-    token = options.accessToken or @store.get "access-token"
+    token = options.accessToken or @store.get("access-token")
     @connected(token, silent: true) if token
     @unsaved = []
 
@@ -99,7 +99,11 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     @view.on "disconnect", @disconnect
 
     jQuery("body").append @view.render()
-    @lookupBook()
+
+    if @client.isAuthorized()
+      @lookupReading().done => @view.reading()
+    else
+      @lookupBook()
 
   # Public: Fetches the book resource from the Readmill API and updates the
   # view when complete. This method is usually called as part of the plugin

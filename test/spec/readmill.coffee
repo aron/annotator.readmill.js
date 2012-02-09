@@ -67,6 +67,7 @@ describe "Readmill", ->
     beforeEach ->
       sinon.stub(jQuery.fn, "append")
       sinon.stub(readmill, "lookupBook")
+      sinon.stub(readmill, "lookupReading")
 
     afterEach ->
       jQuery.fn.append.restore()
@@ -76,9 +77,26 @@ describe "Readmill", ->
       expect(jQuery.fn.append).was.called()
       expect(jQuery.fn.append).was.calledWith(readmill.view.element)
 
-    it "should call @lookupBook", ->
+    it "should call @lookupBook()", ->
       readmill.pluginInit()
       expect(readmill.lookupBook).was.called()
+
+    it "should call @lookupReading() if authorised", ->
+      sinon.stub(readmill.client, "isAuthorized").returns(true)
+      readmill.lookupReading.returns(done: sinon.stub())
+      readmill.pluginInit()
+      expect(readmill.lookupReading).was.called()
+
+    it "should updated the view when the reading is loaded", ->
+      target = sinon.stub()
+      sinon.stub(readmill.client, "isAuthorized").returns(true)
+      sinon.stub(readmill.view, "reading")
+      readmill.lookupReading.returns(done: target)
+      readmill.pluginInit()
+      expect(target).was.called()
+      
+      target.args[0][0]()
+      expect(readmill.view.reading).was.called()
 
     it "should register view event listeners", ->
       target = sinon.stub(readmill.view, "on")
