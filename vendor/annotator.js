@@ -1,20 +1,39 @@
 (function() {
-  var $, Annotator, Delegator, Range, fn, functions, util, _Annotator, _i, _j, _len, _len2, _ref;
-  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-    function ctor() { this.constructor = child; }
-    ctor.prototype = parent.prototype;
-    child.prototype = new ctor;
-    child.__super__ = parent.prototype;
-    return child;
+  var $, Annotator, Delegator, Range, fn, functions, gettext, util, _Annotator, _gettext, _i, _j, _len, _len2, _ref, _t,
+    __slice = Array.prototype.slice,
+    __hasProp = Object.prototype.hasOwnProperty,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+
+  gettext = null;
+
+  if (typeof Gettext !== "undefined" && Gettext !== null) {
+    _gettext = new Gettext({
+      domain: "annotator"
+    });
+    gettext = function(msgid) {
+      return _gettext.gettext(msgid);
+    };
+  } else {
+    gettext = function(msgid) {
+      return msgid;
+    };
+  }
+
+  _t = function(msgid) {
+    return gettext(msgid);
   };
+
   if (!(typeof jQuery !== "undefined" && jQuery !== null ? (_ref = jQuery.fn) != null ? _ref.jquery : void 0 : void 0)) {
-    console.error("Annotator requires jQuery: have you included lib/vendor/jquery.js?");
+    console.error(_t("Annotator requires jQuery: have you included lib/vendor/jquery.js?"));
   }
+
   if (!(JSON && JSON.parse && JSON.stringify)) {
-    console.error("Annotator requires a JSON implementation: have you included lib/vendor/json2.js?");
+    console.error(_t("Annotator requires a JSON implementation: have you included lib/vendor/json2.js?"));
   }
+
   $ = jQuery.sub();
+
   $.flatten = function(array) {
     var flatten;
     flatten = function(ary) {
@@ -28,6 +47,7 @@
     };
     return flatten(array);
   };
+
   $.plugin = function(name, object) {
     return jQuery.fn[name] = function(options) {
       var args;
@@ -44,6 +64,7 @@
       });
     };
   };
+
   $.fn.textNodes = function() {
     var getTextNodes;
     getTextNodes = function(node) {
@@ -66,6 +87,7 @@
       return $.flatten(getTextNodes(this));
     });
   };
+
   $.fn.xpath = function(relativeRoot) {
     var jq;
     jq = this.map(function() {
@@ -82,30 +104,30 @@
     });
     return jq.get();
   };
+
   $.escape = function(html) {
     return html.replace(/&(?!\w+;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   };
+
   $.fn.escape = function(html) {
-    if (arguments.length) {
-      return this.html($.escape(html));
-    }
+    if (arguments.length) return this.html($.escape(html));
     return this.html();
   };
+
   functions = ["log", "debug", "info", "warn", "exception", "assert", "dir", "dirxml", "trace", "group", "groupEnd", "groupCollapsed", "time", "timeEnd", "profile", "profileEnd", "count", "clear", "table", "error", "notifyFirebug", "firebug", "userObjects"];
+
   if (typeof console !== "undefined" && console !== null) {
     if (!(console.group != null)) {
       console.group = function(name) {
         return console.log("GROUP: ", name);
       };
     }
-    if (!(console.groupCollapsed != null)) {
-      console.groupCollapsed = console.group;
-    }
+    if (!(console.groupCollapsed != null)) console.groupCollapsed = console.group;
     for (_i = 0, _len = functions.length; _i < _len; _i++) {
       fn = functions[_i];
       if (!(console[fn] != null)) {
         console[fn] = function() {
-          return console.log("Not implemented: console." + name);
+          return console.log(_t("Not implemented:") + (" console." + name));
         };
       }
     }
@@ -126,16 +148,22 @@
       return alert("WARNING: " + (args.join(', ')));
     };
   }
+
   Delegator = (function() {
+
     Delegator.prototype.events = {};
+
     Delegator.prototype.options = {};
+
     Delegator.prototype.element = null;
+
     function Delegator(element, options) {
       this.options = $.extend(true, {}, this.options, options);
       this.element = $(element);
       this.on = this.subscribe;
       this.addEvents();
     }
+
     Delegator.prototype.addEvents = function() {
       var event, functionName, sel, selector, _k, _ref2, _ref3, _results;
       _ref2 = this.events;
@@ -147,15 +175,15 @@
       }
       return _results;
     };
+
     Delegator.prototype.addEvent = function(bindTo, event, functionName) {
-      var closure, isBlankSelector;
-      closure = __bind(function() {
-        return this[functionName].apply(this, arguments);
-      }, this);
+      var closure, isBlankSelector,
+        _this = this;
+      closure = function() {
+        return _this[functionName].apply(_this, arguments);
+      };
       isBlankSelector = typeof bindTo === 'string' && bindTo.replace(/\s+/g, '') === '';
-      if (isBlankSelector) {
-        bindTo = this.element;
-      }
+      if (isBlankSelector) bindTo = this.element;
       if (typeof bindTo === 'string') {
         this.element.delegate(bindTo, event, closure);
       } else {
@@ -167,16 +195,17 @@
       }
       return this;
     };
+
     Delegator.prototype.isCustomEvent = function(event) {
-      var natives;
-      natives = "blur focus focusin focusout load resize scroll unload click dblclick\nmousedown mouseup mousemove mouseover mouseout mouseenter mouseleave\nchange select submit keydown keypress keyup error".split(/[^a-z]+/);
       event = event.split('.')[0];
-      return $.inArray(event, natives) === -1;
+      return $.inArray(event, Delegator.natives) === -1;
     };
+
     Delegator.prototype.publish = function() {
       this.element.triggerHandler.apply(this.element, arguments);
       return this;
     };
+
     Delegator.prototype.subscribe = function(event, callback) {
       var closure;
       closure = function() {
@@ -186,13 +215,34 @@
       this.element.bind(event, closure);
       return this;
     };
+
     Delegator.prototype.unsubscribe = function() {
       this.element.unbind.apply(this.element, arguments);
       return this;
     };
+
     return Delegator;
+
   })();
+
+  Delegator.natives = (function() {
+    var key, specials, val;
+    specials = (function() {
+      var _ref2, _results;
+      _ref2 = jQuery.event.special;
+      _results = [];
+      for (key in _ref2) {
+        if (!__hasProp.call(_ref2, key)) continue;
+        val = _ref2[key];
+        _results.push(key);
+      }
+      return _results;
+    })();
+    return "blur focus focusin focusout load resize scroll unload click dblclick\nmousedown mouseup mousemove mouseover mouseout mouseenter mouseleave\nchange select submit keydown keypress keyup error".split(/[^a-z]+/).concat(specials);
+  })();
+
   Range = {};
+
   Range.sniff = function(r) {
     if (r.commonAncestorContainer != null) {
       return new Range.BrowserRange(r);
@@ -201,11 +251,13 @@
     } else if (r.start && typeof r.start === "object") {
       return new Range.NormalizedRange(r);
     } else {
-      console.error("Couldn't not sniff range type");
+      console.error(_t("Could not sniff range type"));
       return false;
     }
   };
+
   Range.BrowserRange = (function() {
+
     function BrowserRange(obj) {
       this.commonAncestorContainer = obj.commonAncestorContainer;
       this.startContainer = obj.startContainer;
@@ -213,10 +265,11 @@
       this.endContainer = obj.endContainer;
       this.endOffset = obj.endOffset;
     }
+
     BrowserRange.prototype.normalize = function(root) {
       var it, node, nr, offset, p, r, _k, _len3, _ref2;
       if (this.tainted) {
-        console.error("You may only call normalize() once on a BrowserRange!");
+        console.error(_t("You may only call normalize() once on a BrowserRange!"));
         return false;
       } else {
         this.tainted = true;
@@ -246,9 +299,7 @@
         }
         nr.end = nr.start;
       } else {
-        if (r.endOffset < r.end.nodeValue.length) {
-          r.end.splitText(r.endOffset);
-        }
+        if (r.endOffset < r.end.nodeValue.length) r.end.splitText(r.endOffset);
         nr.end = r.end;
       }
       nr.commonAncestor = this.commonAncestorContainer;
@@ -257,28 +308,33 @@
       }
       return new Range.NormalizedRange(nr);
     };
+
     BrowserRange.prototype.serialize = function(root, ignoreSelector) {
       return this.normalize(root).serialize(root, ignoreSelector);
     };
+
     return BrowserRange;
+
   })();
+
   Range.NormalizedRange = (function() {
+
     function NormalizedRange(obj) {
       this.commonAncestor = obj.commonAncestor;
       this.start = obj.start;
       this.end = obj.end;
     }
+
     NormalizedRange.prototype.normalize = function(root) {
       return this;
     };
+
     NormalizedRange.prototype.limit = function(bounds) {
       var nodes, parent, startParents, _k, _len3, _ref2;
       nodes = $.grep(this.textNodes(), function(node) {
         return node.parentNode === bounds || $.contains(bounds, node.parentNode);
       });
-      if (!nodes.length) {
-        return null;
-      }
+      if (!nodes.length) return null;
       this.start = nodes[0];
       this.end = nodes[nodes.length - 1];
       startParents = $(this.start).parents();
@@ -292,6 +348,7 @@
       }
       return this;
     };
+
     NormalizedRange.prototype.serialize = function(root, ignoreSelector) {
       var end, serialization, start;
       serialization = function(node, isEnd) {
@@ -324,6 +381,7 @@
         endOffset: end[1]
       });
     };
+
     NormalizedRange.prototype.text = function() {
       var node;
       return ((function() {
@@ -337,27 +395,39 @@
         return _results;
       }).call(this)).join('');
     };
+
     NormalizedRange.prototype.textNodes = function() {
       var end, start, textNodes, _ref2;
       textNodes = $(this.commonAncestor).textNodes();
       _ref2 = [textNodes.index(this.start), textNodes.index(this.end)], start = _ref2[0], end = _ref2[1];
-      return $.makeArray(textNodes.slice(start, (end + 1) || 9e9));
+      return $.makeArray(textNodes.slice(start, end + 1 || 9e9));
     };
+
+    NormalizedRange.prototype.toRange = function() {
+      var range;
+      range = document.createRange();
+      range.setStartBefore(this.start);
+      range.setEndAfter(this.end);
+      return range;
+    };
+
     return NormalizedRange;
+
   })();
+
   Range.SerializedRange = (function() {
+
     function SerializedRange(obj) {
       this.start = obj.start;
       this.startOffset = obj.startOffset;
       this.end = obj.end;
       this.endOffset = obj.endOffset;
     }
+
     SerializedRange.prototype._nodeFromXPath = function(xpath) {
       var customResolver, evaluateXPath, namespace, node, segment;
       evaluateXPath = function(xp, nsResolver) {
-        if (nsResolver == null) {
-          nsResolver = null;
-        }
+        if (nsResolver == null) nsResolver = null;
         return document.evaluate(xp, document, nsResolver, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
       };
       if (!$.isXMLDoc(document.documentElement)) {
@@ -372,7 +442,11 @@
             _results = [];
             for (_k = 0, _len3 = _ref2.length; _k < _len3; _k++) {
               segment = _ref2[_k];
-              _results.push(segment && segment.indexOf(':') === -1 ? segment.replace(/^([a-z]+)/, 'xhtml:$1') : segment);
+              if (segment && segment.indexOf(':') === -1) {
+                _results.push(segment.replace(/^([a-z]+)/, 'xhtml:$1'));
+              } else {
+                _results.push(segment);
+              }
             }
             return _results;
           })()).join('/');
@@ -389,6 +463,7 @@
         return node;
       }
     };
+
     SerializedRange.prototype.normalize = function(root) {
       var cacXPath, common, endAncestry, i, length, p, parentXPath, range, startAncestry, tn, _k, _l, _len3, _len4, _ref2, _ref3, _ref4;
       parentXPath = $(root).xpath()[0];
@@ -406,7 +481,7 @@
       cacXPath = parentXPath + common.join("/");
       range.commonAncestorContainer = this._nodeFromXPath(cacXPath);
       if (!range.commonAncestorContainer) {
-        console.error("Error deserializing range: can't find XPath '" + cacXPath + "'. Is this the right document?");
+        console.error(_t("Error deserializing range: can't find XPath '") + cacXPath + _t("'. Is this the right document?"));
         return null;
       }
       _ref3 = ['start', 'end'];
@@ -427,9 +502,11 @@
       }
       return new Range.BrowserRange(range).normalize(root);
     };
+
     SerializedRange.prototype.serialize = function(root, ignoreSelector) {
       return this.normalize(root).serialize(root, ignoreSelector);
     };
+
     SerializedRange.prototype.toObject = function() {
       return {
         start: this.start,
@@ -438,8 +515,11 @@
         endOffset: this.endOffset
       };
     };
+
     return SerializedRange;
+
   })();
+
   util = {
     uuid: (function() {
       var counter;
@@ -465,28 +545,42 @@
       return event != null ? typeof event.preventDefault === "function" ? event.preventDefault() : void 0 : void 0;
     }
   };
+
   _Annotator = this.Annotator;
-  Annotator = (function() {
-    __extends(Annotator, Delegator);
+
+  Annotator = (function(_super) {
+
+    __extends(Annotator, _super);
+
     Annotator.prototype.events = {
       ".annotator-adder button click": "onAdderClick",
       ".annotator-adder button mousedown": "onAdderMousedown",
       ".annotator-hl mouseover": "onHighlightMouseover",
       ".annotator-hl mouseout": "startViewerHideTimer"
     };
+
     Annotator.prototype.html = {
       hl: '<span class="annotator-hl"></span>',
-      adder: '<div class="annotator-adder"><button>Annotate</button></div>',
+      adder: '<div class="annotator-adder"><button>' + _t('Annotate') + '</button></div>',
       wrapper: '<div class="annotator-wrapper"></div>'
     };
+
     Annotator.prototype.options = {};
+
     Annotator.prototype.plugins = {};
+
     Annotator.prototype.editor = null;
+
     Annotator.prototype.viewer = null;
+
     Annotator.prototype.selectedRanges = null;
+
     Annotator.prototype.mouseIsDown = false;
+
     Annotator.prototype.ignoreMouseup = false;
+
     Annotator.prototype.viewerHideTimer = null;
+
     function Annotator(element, options) {
       this.onDeleteAnnotation = __bind(this.onDeleteAnnotation, this);
       this.onEditAnnotation = __bind(this.onEditAnnotation, this);
@@ -500,21 +594,19 @@
       this.showViewer = __bind(this.showViewer, this);
       this.onEditorSubmit = __bind(this.onEditorSubmit, this);
       this.onEditorHide = __bind(this.onEditorHide, this);
-      this.showEditor = __bind(this.showEditor, this);      var name, src, _ref2;
+      this.showEditor = __bind(this.showEditor, this);
+      var name, src, _ref2;
       Annotator.__super__.constructor.apply(this, arguments);
       this.plugins = {};
-      if (!Annotator.supported()) {
-        return this;
-      }
+      if (!Annotator.supported()) return this;
       this._setupDocumentEvents()._setupWrapper()._setupViewer()._setupEditor();
       _ref2 = this.html;
       for (name in _ref2) {
         src = _ref2[name];
-        if (name !== 'wrapper') {
-          this[name] = $(src).appendTo(this.wrapper).hide();
-        }
+        if (name !== 'wrapper') this[name] = $(src).appendTo(this.wrapper).hide();
       }
     }
+
     Annotator.prototype._setupWrapper = function() {
       this.wrapper = $(this.html.wrapper);
       this.element.find('script').remove();
@@ -522,24 +614,31 @@
       this.wrapper = this.element.find('.annotator-wrapper');
       return this;
     };
+
     Annotator.prototype._setupViewer = function() {
+      var _this = this;
       this.viewer = new Annotator.Viewer();
       this.viewer.hide().on("edit", this.onEditAnnotation).on("delete", this.onDeleteAnnotation).addField({
-        load: __bind(function(field, annotation) {
-          $(field).escape(annotation.text || '');
-          return this.publish('annotationViewerTextField', [field, annotation]);
-        }, this)
+        load: function(field, annotation) {
+          if (annotation.text) {
+            $(field).escape(annotation.text);
+          } else {
+            $(field).html("<i>" + (_t('No Comment')) + "</i>");
+          }
+          return _this.publish('annotationViewerTextField', [field, annotation]);
+        }
       }).element.appendTo(this.wrapper).bind({
         "mouseover": this.clearViewerHideTimer,
         "mouseout": this.startViewerHideTimer
       });
       return this;
     };
+
     Annotator.prototype._setupEditor = function() {
       this.editor = new Annotator.Editor();
       this.editor.hide().on('hide', this.onEditorHide).on('save', this.onEditorSubmit).addField({
         type: 'textarea',
-        label: 'Comments\u2026',
+        label: _t('Comments') + '\u2026',
         load: function(field, annotation) {
           return $(field).find('textarea').val(annotation.text || '');
         },
@@ -550,6 +649,7 @@
       this.editor.element.appendTo(this.wrapper);
       return this;
     };
+
     Annotator.prototype._setupDocumentEvents = function() {
       $(document).bind({
         "mouseup": this.checkForEndSelection,
@@ -557,6 +657,7 @@
       });
       return this;
     };
+
     Annotator.prototype.getSelectedRanges = function() {
       var browserRange, i, ranges, selection;
       selection = util.getGlobal().getSelection();
@@ -571,22 +672,24 @@
           }
           return _results;
         }).call(this);
+        selection.removeAllRanges();
       }
       return $.grep(ranges, function(range) {
+        if (range) selection.addRange(range.toRange());
         return range;
       });
     };
+
     Annotator.prototype.createAnnotation = function() {
       var annotation;
       annotation = {};
       this.publish('beforeAnnotationCreated', [annotation]);
       return annotation;
     };
+
     Annotator.prototype.setupAnnotation = function(annotation, fireEvents) {
       var normed, normedRanges, r, sniffed, _k, _len3;
-      if (fireEvents == null) {
-        fireEvents = true;
-      }
+      if (fireEvents == null) fireEvents = true;
       annotation.ranges || (annotation.ranges = this.selectedRanges);
       normedRanges = (function() {
         var _k, _len3, _ref2, _results;
@@ -613,16 +716,16 @@
       }
       annotation.quote = annotation.quote.join(' / ');
       $(annotation.highlights).data('annotation', annotation);
-      if (fireEvents) {
-        this.publish('annotationCreated', [annotation]);
-      }
+      if (fireEvents) this.publish('annotationCreated', [annotation]);
       return annotation;
     };
+
     Annotator.prototype.updateAnnotation = function(annotation) {
       this.publish('beforeAnnotationUpdated', [annotation]);
       this.publish('annotationUpdated', [annotation]);
       return annotation;
     };
+
     Annotator.prototype.deleteAnnotation = function(annotation) {
       var h, _k, _len3, _ref2;
       _ref2 = annotation.highlights;
@@ -633,60 +736,58 @@
       this.publish('annotationDeleted', [annotation]);
       return annotation;
     };
+
     Annotator.prototype.loadAnnotations = function(annotations) {
-      var clone, loader;
-      if (annotations == null) {
-        annotations = [];
-      }
-      loader = __bind(function(annList) {
+      var clone, loader,
+        _this = this;
+      if (annotations == null) annotations = [];
+      loader = function(annList) {
         var n, now, _k, _len3;
-        if (annList == null) {
-          annList = [];
-        }
+        if (annList == null) annList = [];
         now = annList.splice(0, 10);
         for (_k = 0, _len3 = now.length; _k < _len3; _k++) {
           n = now[_k];
-          this.setupAnnotation(n, false);
+          _this.setupAnnotation(n, false);
         }
         if (annList.length > 0) {
           return setTimeout((function() {
             return loader(annList);
           }), 100);
         } else {
-          return this.publish('annotationsLoaded', [clone]);
+          return _this.publish('annotationsLoaded', [clone]);
         }
-      }, this);
+      };
       clone = annotations.slice();
-      if (annotations.length) {
-        loader(annotations);
-      }
+      if (annotations.length) loader(annotations);
       return this;
     };
+
     Annotator.prototype.dumpAnnotations = function() {
       if (this.plugins['Store']) {
         return this.plugins['Store'].dumpAnnotations();
       } else {
-        return console.warn("Can't dump annotations without Store plugin.");
+        return console.warn(_t("Can't dump annotations without Store plugin."));
       }
     };
+
     Annotator.prototype.highlightRange = function(normedRange) {
-      var elemList, node, wrapper;
-      return elemList = (function() {
-        var _k, _len3, _ref2, _results;
-        _ref2 = normedRange.textNodes();
-        _results = [];
-        for (_k = 0, _len3 = _ref2.length; _k < _len3; _k++) {
-          node = _ref2[_k];
-          wrapper = this.hl.clone().show();
-          _results.push($(node).wrap(wrapper).parent().get(0));
+      var node, white, _k, _len3, _ref2, _results;
+      white = /^\s*$/;
+      _ref2 = normedRange.textNodes();
+      _results = [];
+      for (_k = 0, _len3 = _ref2.length; _k < _len3; _k++) {
+        node = _ref2[_k];
+        if (!white.test(node.nodeValue)) {
+          _results.push($(node).wrapAll(this.hl).parent().show()[0]);
         }
-        return _results;
-      }).call(this);
+      }
+      return _results;
     };
+
     Annotator.prototype.addPlugin = function(name, options) {
       var klass, _base;
       if (this.plugins[name]) {
-        console.error("You cannot have more than one instance of any plugin.");
+        console.error(_t("You cannot have more than one instance of any plugin."));
       } else {
         klass = Annotator.Plugin[name];
         if (typeof klass === 'function') {
@@ -696,20 +797,23 @@
             _base.pluginInit();
           }
         } else {
-          console.error("Could not load " + name + " plugin. Have you included the appropriate <script> tag?");
+          console.error(_t("Could not load ") + name + _t(" plugin. Have you included the appropriate <script> tag?"));
         }
       }
       return this;
     };
+
     Annotator.prototype.showEditor = function(annotation, location) {
       this.editor.element.css(location);
       this.editor.load(annotation);
       return this;
     };
+
     Annotator.prototype.onEditorHide = function() {
       this.publish('annotationEditorHidden', [this.editor]);
       return this.ignoreMouseup = false;
     };
+
     Annotator.prototype.onEditorSubmit = function(annotation) {
       this.publish('annotationEditorSubmit', [this.editor, annotation]);
       if (annotation.ranges === void 0) {
@@ -718,40 +822,41 @@
         return this.updateAnnotation(annotation);
       }
     };
+
     Annotator.prototype.showViewer = function(annotations, location) {
       this.viewer.element.css(location);
       this.viewer.load(annotations);
       return this.publish('annotationViewerShown', [this.viewer, annotations]);
     };
+
     Annotator.prototype.startViewerHideTimer = function() {
       if (!this.viewerHideTimer) {
         return this.viewerHideTimer = setTimeout(this.viewer.hide, 250);
       }
     };
+
     Annotator.prototype.clearViewerHideTimer = function() {
       clearTimeout(this.viewerHideTimer);
       return this.viewerHideTimer = false;
     };
+
     Annotator.prototype.checkForStartSelection = function(event) {
       if (!(event && this.isAnnotator(event.target))) {
         this.startViewerHideTimer();
         return this.mouseIsDown = true;
       }
     };
+
     Annotator.prototype.checkForEndSelection = function(event) {
       var container, range, _k, _len3, _ref2;
       this.mouseIsDown = false;
-      if (this.ignoreMouseup) {
-        return;
-      }
+      if (this.ignoreMouseup) return;
       this.selectedRanges = this.getSelectedRanges();
       _ref2 = this.selectedRanges;
       for (_k = 0, _len3 = _ref2.length; _k < _len3; _k++) {
         range = _ref2[_k];
         container = range.commonAncestor;
-        if (this.isAnnotator(container)) {
-          return;
-        }
+        if (this.isAnnotator(container)) return;
       }
       if (event && this.selectedRanges.length) {
         return this.adder.css(util.mousePosition(event, this.wrapper[0])).show();
@@ -759,69 +864,91 @@
         return this.adder.hide();
       }
     };
+
     Annotator.prototype.isAnnotator = function(element) {
       return !!$(element).parents().andSelf().filter('[class^=annotator-]').not(this.wrapper).length;
     };
+
     Annotator.prototype.onHighlightMouseover = function(event) {
       var annotations;
       this.clearViewerHideTimer();
-      if (this.mouseIsDown || this.viewer.isShown()) {
-        return false;
-      }
+      if (this.mouseIsDown || this.viewer.isShown()) return false;
       annotations = $(event.target).parents('.annotator-hl').andSelf().map(function() {
         return $(this).data("annotation");
       });
       return this.showViewer($.makeArray(annotations), util.mousePosition(event, this.wrapper[0]));
     };
+
     Annotator.prototype.onAdderMousedown = function(event) {
-      if (event != null) {
-        event.preventDefault();
-      }
+      if (event != null) event.preventDefault();
       return this.ignoreMouseup = true;
     };
+
     Annotator.prototype.onAdderClick = function(event) {
       var position;
-      if (event != null) {
-        event.preventDefault();
-      }
+      if (event != null) event.preventDefault();
       position = this.adder.position();
       this.adder.hide();
       return this.showEditor(this.createAnnotation(), position);
     };
+
     Annotator.prototype.onEditAnnotation = function(annotation) {
       var offset;
       offset = this.viewer.element.position();
       this.viewer.hide();
       return this.showEditor(annotation, offset);
     };
+
     Annotator.prototype.onDeleteAnnotation = function(annotation) {
       this.viewer.hide();
       return this.deleteAnnotation(annotation);
     };
+
     return Annotator;
-  })();
-  Annotator.Plugin = (function() {
-    __extends(Plugin, Delegator);
+
+  })(Delegator);
+
+  Annotator.Plugin = (function(_super) {
+
+    __extends(Plugin, _super);
+
     function Plugin(element, options) {
       Plugin.__super__.constructor.apply(this, arguments);
     }
+
     Plugin.prototype.pluginInit = function() {};
+
     return Plugin;
-  })();
+
+  })(Delegator);
+
   Annotator.$ = $;
+
+  Annotator.Delegator = Delegator;
+
+  Annotator.Range = Range;
+
+  Annotator._t = _t;
+
   Annotator.supported = function() {
     return (function() {
       return !!this.getSelection;
     })();
   };
+
   Annotator.noConflict = function() {
     util.getGlobal().Annotator = _Annotator;
     return this;
   };
+
   $.plugin('annotator', Annotator);
+
   this.Annotator = Annotator;
-  Annotator.Widget = (function() {
-    __extends(Widget, Delegator);
+
+  Annotator.Widget = (function(_super) {
+
+    __extends(Widget, _super);
+
     Widget.prototype.classes = {
       hide: 'annotator-hide',
       invert: {
@@ -829,10 +956,12 @@
         y: 'annotator-invert-y'
       }
     };
+
     function Widget(element, options) {
       Widget.__super__.constructor.apply(this, arguments);
       this.classes = $.extend({}, Annotator.Widget.prototype.classes, this.classes);
     }
+
     Widget.prototype.checkOrientation = function() {
       var current, offset, viewport, widget, window;
       this.resetOrientation();
@@ -847,30 +976,42 @@
         top: offset.top,
         right: offset.left + widget.width()
       };
-      if ((current.top - viewport.top) < 0) {
-        this.invertY();
-      }
-      if ((current.right - viewport.right) > 0) {
-        this.invertX();
-      }
+      if ((current.top - viewport.top) < 0) this.invertY();
+      if ((current.right - viewport.right) > 0) this.invertX();
       return this;
     };
+
     Widget.prototype.resetOrientation = function() {
       this.element.removeClass(this.classes.invert.x).removeClass(this.classes.invert.y);
       return this;
     };
+
     Widget.prototype.invertX = function() {
       this.element.addClass(this.classes.invert.x);
       return this;
     };
+
     Widget.prototype.invertY = function() {
       this.element.addClass(this.classes.invert.y);
       return this;
     };
+
+    Widget.prototype.isInvertedY = function() {
+      return this.element.hasClass(this.classes.invert.y);
+    };
+
+    Widget.prototype.isInvertedX = function() {
+      return this.element.hasClass(this.classes.invert.x);
+    };
+
     return Widget;
-  })();
-  Annotator.Editor = (function() {
-    __extends(Editor, Annotator.Widget);
+
+  })(Delegator);
+
+  Annotator.Editor = (function(_super) {
+
+    __extends(Editor, _super);
+
     Editor.prototype.events = {
       "form submit": "submit",
       ".annotator-save click": "submit",
@@ -878,12 +1019,16 @@
       ".annotator-cancel mouseover": "onCancelButtonMouseover",
       "textarea keydown": "processKeypress"
     };
+
     Editor.prototype.classes = {
       hide: 'annotator-hide',
       focus: 'annotator-focus'
     };
-    Editor.prototype.html = "<div class=\"annotator-outer annotator-editor\">\n  <form class=\"annotator-widget\">\n    <ul class=\"annotator-listing\"></ul>\n    <div class=\"annotator-controls\">\n      <a href=\"#cancel\" class=\"annotator-cancel\">Cancel</a>\n      <a href=\"#save\" class=\"annotator-save annotator-focus\">Save</a>\n    </div>\n    <span class=\"annotator-resize\"></span>\n  </form>\n</div>";
+
+    Editor.prototype.html = "<div class=\"annotator-outer annotator-editor\">\n  <form class=\"annotator-widget\">\n    <ul class=\"annotator-listing\"></ul>\n    <div class=\"annotator-controls\">\n      <a href=\"#cancel\" class=\"annotator-cancel\">" + _t('Cancel') + "</a>\n<a href=\"#save\" class=\"annotator-save annotator-focus\">" + _t('Save') + "</a>\n    </div>\n    <span class=\"annotator-resize\"></span>\n  </form>\n</div>";
+
     Editor.prototype.options = {};
+
     function Editor(options) {
       this.onCancelButtonMouseover = __bind(this.onCancelButtonMouseover, this);
       this.processKeypress = __bind(this.processKeypress, this);
@@ -893,20 +1038,26 @@
       this.show = __bind(this.show, this);      Editor.__super__.constructor.call(this, $(this.html)[0], options);
       this.fields = [];
       this.annotation = {};
-      this.setupDragabbles();
+      this.setupDraggables();
     }
+
     Editor.prototype.show = function(event) {
+      var focusPos;
       util.preventEventDefault(event);
       this.element.removeClass(this.classes.hide);
       this.element.find('.annotator-save').addClass(this.classes.focus);
-      this.element.find(':input:first').focus();
-      return this.checkOrientation().publish('show');
+      this.checkOrientation();
+      focusPos = this.isInvertedY() ? ':last' : ':first';
+      this.element.find(":input" + focusPos).focus();
+      return this.publish('show');
     };
+
     Editor.prototype.hide = function(event) {
       util.preventEventDefault(event);
       this.element.addClass(this.classes.hide);
       return this.publish('hide');
     };
+
     Editor.prototype.load = function(annotation) {
       var field, _k, _len3, _ref2;
       this.annotation = annotation;
@@ -918,6 +1069,7 @@
       }
       return this.show();
     };
+
     Editor.prototype.submit = function(event) {
       var field, _k, _len3, _ref2;
       util.preventEventDefault(event);
@@ -929,6 +1081,7 @@
       this.publish('save', [this.annotation]);
       return this.hide();
     };
+
     Editor.prototype.addField = function(options) {
       var element, field, input;
       field = $.extend({
@@ -966,6 +1119,7 @@
       this.fields.push(field);
       return field.element;
     };
+
     Editor.prototype.checkOrientation = function() {
       var controls, flipFields, list;
       Editor.__super__.checkOrientation.apply(this, arguments);
@@ -985,6 +1139,7 @@
       }
       return this;
     };
+
     Editor.prototype.processKeypress = function(event) {
       if (event.keyCode === 27) {
         return this.hide();
@@ -992,11 +1147,14 @@
         return this.submit();
       }
     };
+
     Editor.prototype.onCancelButtonMouseover = function() {
       return this.element.find('.' + this.classes.focus).removeClass(this.classes.focus);
     };
-    Editor.prototype.setupDragabbles = function() {
-      var classes, controls, editor, mousedown, onMousedown, onMousemove, onMouseup, resize, textarea, throttle;
+
+    Editor.prototype.setupDraggables = function() {
+      var classes, controls, editor, mousedown, onMousedown, onMousemove, onMouseup, resize, textarea, throttle,
+        _this = this;
       mousedown = null;
       classes = this.classes;
       editor = this.element;
@@ -1023,7 +1181,7 @@
         mousedown = null;
         return $(window).unbind('.annotator-editor-resize');
       };
-      onMousemove = __bind(function(event) {
+      onMousemove = function(event) {
         var diff, directionX, directionY, height, width;
         if (mousedown && throttle === false) {
           diff = {
@@ -1037,12 +1195,8 @@
             directionY = editor.hasClass(classes.invert.y) ? 1 : -1;
             textarea.height(height + (diff.top * directionY));
             textarea.width(width + (diff.left * directionX));
-            if (textarea.outerHeight() !== height) {
-              mousedown.top = event.pageY;
-            }
-            if (textarea.outerWidth() !== width) {
-              mousedown.left = event.pageX;
-            }
+            if (textarea.outerHeight() !== height) mousedown.top = event.pageY;
+            if (textarea.outerWidth() !== width) mousedown.left = event.pageX;
           } else if (mousedown.element === controls[0]) {
             editor.css({
               top: parseInt(editor.css('top'), 10) + diff.top,
@@ -1056,26 +1210,34 @@
             return throttle = false;
           }, 1000 / 60);
         }
-      }, this);
+      };
       resize.bind('mousedown', onMousedown);
       return controls.bind('mousedown', onMousedown);
     };
+
     return Editor;
-  })();
-  Annotator.Viewer = (function() {
-    __extends(Viewer, Annotator.Widget);
+
+  })(Annotator.Widget);
+
+  Annotator.Viewer = (function(_super) {
+
+    __extends(Viewer, _super);
+
     Viewer.prototype.events = {
       ".annotator-edit click": "onEditClick",
       ".annotator-delete click": "onDeleteClick"
     };
+
     Viewer.prototype.classes = {
       hide: 'annotator-hide',
       showControls: 'annotator-visible'
     };
+
     Viewer.prototype.html = {
       element: "<div class=\"annotator-outer annotator-viewer\">\n  <ul class=\"annotator-widget annotator-listing\"></ul>\n</div>",
       item: "<li class=\"annotator-annotation annotator-item\">\n  <span class=\"annotator-controls\">\n    <button class=\"annotator-edit\">Edit</button>\n    <button class=\"annotator-delete\">Delete</button>\n  </span>\n</li>"
     };
+
     function Viewer(options) {
       this.onDeleteClick = __bind(this.onDeleteClick, this);
       this.onEditClick = __bind(this.onEditClick, this);
@@ -1086,24 +1248,29 @@
       this.fields = [];
       this.annotations = [];
     }
+
     Viewer.prototype.show = function(event) {
-      var controls;
+      var controls,
+        _this = this;
       util.preventEventDefault(event);
       controls = this.element.find('.annotator-controls').addClass(this.classes.showControls);
-      setTimeout((__bind(function() {
-        return controls.removeClass(this.classes.showControls);
-      }, this)), 500);
+      setTimeout((function() {
+        return controls.removeClass(_this.classes.showControls);
+      }), 500);
       this.element.removeClass(this.classes.hide);
       return this.checkOrientation().publish('show');
     };
+
     Viewer.prototype.isShown = function() {
       return !this.element.hasClass(this.classes.hide);
     };
+
     Viewer.prototype.hide = function(event) {
       util.preventEventDefault(event);
       this.element.addClass(this.classes.hide);
       return this.publish('hide');
     };
+
     Viewer.prototype.load = function(annotations) {
       var annotation, controller, controls, del, edit, element, field, item, list, _k, _l, _len3, _len4, _ref2, _ref3;
       this.annotations = annotations || [];
@@ -1139,6 +1306,7 @@
       this.publish('load', [this.annotations]);
       return this.show();
     };
+
     Viewer.prototype.addField = function(options) {
       var field;
       field = $.extend({
@@ -1149,25 +1317,35 @@
       field.element;
       return this;
     };
+
     Viewer.prototype.onEditClick = function(event) {
       return this.onButtonClick(event, 'edit');
     };
+
     Viewer.prototype.onDeleteClick = function(event) {
       return this.onButtonClick(event, 'delete');
     };
+
     Viewer.prototype.onButtonClick = function(event, type) {
       var item;
       item = $(event.target).parents('.annotator-annotation');
       return this.publish(type, [item.data('annotation')]);
     };
+
     return Viewer;
-  })();
+
+  })(Annotator.Widget);
+
   Annotator = Annotator || {};
-  Annotator.Notification = (function() {
-    __extends(Notification, Delegator);
+
+  Annotator.Notification = (function(_super) {
+
+    __extends(Notification, _super);
+
     Notification.prototype.events = {
       "click": "hide"
     };
+
     Notification.prototype.options = {
       html: "<div class='annotator-notice'></div>",
       classes: {
@@ -1177,31 +1355,39 @@
         error: "annotator-notice-error"
       }
     };
+
     function Notification(options) {
       this.hide = __bind(this.hide, this);
       this.show = __bind(this.show, this);      Notification.__super__.constructor.call(this, $(this.options.html).appendTo(document.body)[0], options);
     }
+
     Notification.prototype.show = function(message, status) {
-      if (status == null) {
-        status = Annotator.Notification.INFO;
-      }
+      if (status == null) status = Annotator.Notification.INFO;
       $(this.element).addClass(this.options.classes.show).addClass(this.options.classes[status]).escape(message || "");
       setTimeout(this.hide, 5000);
       return this;
     };
+
     Notification.prototype.hide = function() {
       $(this.element).removeClass(this.options.classes.show);
       return this;
     };
+
     return Notification;
-  })();
+
+  })(Delegator);
+
   Annotator.Notification.INFO = 'show';
+
   Annotator.Notification.SUCCESS = 'success';
+
   Annotator.Notification.ERROR = 'error';
+
   $(function() {
     var notification;
     notification = new Annotator.Notification;
     Annotator.showNotification = notification.show;
     return Annotator.hideNotification = notification.hide;
   });
+
 }).call(this);
