@@ -135,7 +135,7 @@ Annotator.Readmill.utils = do ->
   annotationFromHighlight: (highlight, client) ->
     # Try and extract annotation metadata from the locators object.
     meta = try JSON.parse(highlight.locators.annotator) catch e then null
-    meta = (try {range: JSON.parse(highlight.pre)} catch e then null) unless meta
+    meta = (try ranges: JSON.parse(highlight.pre) catch e then null) unless meta
     deferred = new jQuery.Deferred()
 
     if meta
