@@ -75,26 +75,34 @@ Annotator.Readmill.View = class View extends Annotator.Class
   # @login() once the user has authenticated and the user object has been
   # retrieved from the server.
   #
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
+  #
   # Examples
   #
   #   view.connect()
   #
   # Returns itself.
-  connect: ->
-    @publish "connect", [this]
+  connect: (options={}) ->
+    @publish "connect", [this] unless options.silent
+    this
 
   # Public: Triggers the "disconnect" event passing in the View instance to
   # all registered listeners. This is called when the user wishes to
   # logout of the Readmill service. The implmentor should then call
   # @logout() once the user has been logged out from Readmill.
   #
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
+  #
   # Examples
   #
   #   view.disconnect()
   #
   # Returns itself.
-  disconnect: ->
-    @publish "disconnect", [this]
+  disconnect: (options={}) ->
+    @publish "disconnect", [this] unless options.silent
+    this
 
   # Public: Updates the view to the "logged in" state. Showing the log out
   # button and user details. This should be called once the user has been
@@ -102,7 +110,9 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #
   # Publishes the "login" event once the view has updated.
   #
-  # user - The user object retrieved from Readmill.
+  # user    - The user object retrieved from Readmill.
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
   #
   # Examples
   #
@@ -110,32 +120,40 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #   view.login user
   #
   # Returns itself.
-  login: (user) ->
+  login: (user, options={}) ->
     @updateUser(user) if user
     @updateState(@states.START_READING)
     @element.addClass @classes.loggedIn
-    @publish "login", [this]
+    @publish("login", [this]) unless options.silent
+    this
 
   # Public: Switches the current view state to reading. This should be called
   # once the user decides to start a reading session.
   #
   # Publishes the "reading" event once the view has updated.
   #
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
+  #
   # Returns itself.
-  reading: ->
+  reading: (options={}) ->
     @updateState(@states.NOW_READING)
-    @publish "reading", [this]
+    @publish("reading", [this]) unless options.silent
+    this
 
   # Public: Switches the current view state to "finish". This should be called
   # once a user decides to end a reading session.
   #
   # Publishes the "finish" event once the view has updated.
   #
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
+  #
   # param - comment
   #
   # Returns itself.
-  finish: ->
-    @publish "finish", [this]
+  finish: (options={}) ->
+    @publish("finish", [this]) unless options.silent
     @login()
     this
 
@@ -145,19 +163,23 @@ Annotator.Readmill.View = class View extends Annotator.Class
   #
   # Publishes the "logout" event once the view has updated.
   #
+  # options - An object literal of method options.
+  #           silent - If true the method will not publish any events.
+  #
   # Examples
   #
   #   view.on "disconnect" ->
   #     view.logout()
   #
   # Returns itself.
-  logout: ->
+  logout: (options={}) ->
     @element.removeClass(@classes.loggedIn).html(@template)
 
     @user = null
     @updateBook()
 
-    @publish "logout", [this]
+    @publish("logout", [this]) unless options.silent
+    this
 
   # Public: Updates the user elements within the view. Will update the @user
   # property or simply use the current value. This method will not transition
