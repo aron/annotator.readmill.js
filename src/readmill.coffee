@@ -101,7 +101,9 @@ Annotator.Readmill = class Readmill extends Annotator.Plugin
     jQuery("body").append @view.render()
 
     if @client.isAuthorized()
-      @lookupReading().done => @view.reading()
+      # Look up reading and update the view. Pass silent to prevent
+      # triggering "reading" event.
+      @lookupReading().done => @view.reading(silent: true)
     else
       @lookupBook()
 
