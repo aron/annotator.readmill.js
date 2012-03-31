@@ -26,10 +26,10 @@ task "serve", "Serve the example files using a python server", ->
 
 task "proxy", "Run the proxy server locally on port 8080", ->
   run """
-  PORT=8080 \
-  PROXY_DOMAIN=http://localhost:8080 \
-  READMILL_CLIENT_CALLBACK=http://localhost:8000/callback.html \
-  ${coffee} proxy.coffee
+  PORT=8080 \\
+  PROXY_DOMAIN=http://localhost:8080 \\
+  READMILL_CLIENT_CALLBACK=http://localhost:8000/callback.html \\
+  #{COFFEE} proxy.coffee
   """
 
 task "test", "Open the test suite in the browser", ->
