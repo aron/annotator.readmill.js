@@ -1,7 +1,7 @@
 {
   "name": "annotator.readmill.js",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Annotate books with Annotator and Readmill",
   "dependencies": {
     "uglify-js": "1.2.4",
