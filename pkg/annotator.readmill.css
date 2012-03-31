@@ -1,4 +1,4 @@
-/*  Readmill Annotator Plugin - v0.2.0
+/*  Readmill Annotator Plugin - v0.2.1
  *  Copyright 2011, Aron Carroll
  *  Released under the MIT license
  *  More Information: http://github.com/aron/readmill.annotator.js
@@ -39,6 +39,13 @@
 	font-size: 11px;
 	line-height: 1;
 	text-transform: uppercase;
+}
+
+/* Disable the connect button when reading. */
+.annotator-readmill-connect a[href="#reading"]:hover,
+.annotator-readmill-connect a[href="#reading"]:active {
+	cursor: default;
+	text-decoration: none;
 }
 
 .annotator-readmill-avatar {
