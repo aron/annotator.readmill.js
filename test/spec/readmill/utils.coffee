@@ -10,7 +10,8 @@ describe "utils", ->
     annotation =
       id: 1
       page: "http://page"
-      ranges: []
+      ranges: [{start: "/p", end: "/p", startOffset: 0, endOffset: 1}]
+      highlights: [],
       text: "This is an annotation comment"
       quote: "some highlighted text"
 
@@ -71,9 +72,20 @@ describe "utils", ->
       expect(parsed).to.eql(dog: "woof", cat: "meow")
 
   describe "#highlightFromAnnotation()", ->
+    beforeEach ->
+      sinon.stub(utils, 'postText').returns('post')
+      sinon.stub(utils, 'preText').returns('pre')
+
+    afterEach ->
+      utils.postText.restore()
+      utils.preText.restore()
+
     it "should parse the annotation and return a highlight", ->
       target = utils.highlightFromAnnotation(annotation)
-      expect(target).to.have.property("locators").to.have.property("annotator", '{"ranges":[],"page":"http://page"}')
+      expect(target).to.have.property("locators").to.have.property("pre", "pre")
+      expect(target).to.have.property("locators").to.have.property("post", "post")
+      expect(target).to.have.property("locators").to.have.property("xpath")
+      expect(target).to.have.property("locators").to.have.property("file_id", "http://page")
       expect(target).to.have.property("content", annotation.quote)
       expect(target).to.have.property("id", annotation.id)
 
@@ -83,14 +95,23 @@ describe "utils", ->
       expect(target).to.have.property("content", annotation.text)
 
   describe "#annotationFromHighlight()", ->
+    xpath     = null
     highlight = null
     client    = null
     promise   = null
 
     beforeEach ->
+      xpath = 
+        start: "/p"
+        startOffset: 0
+        end: "/p"
+        endOffset: 10
+
       highlight =
         id: 1
-        locators: {annotator: '{"ranges": [], "page": "http://page"}'}
+        locators:
+          xpath: xpath
+          file_id: "http://page"
         uri: "http://api.readmill.com/highlight/1"
         content: "A nice piece of highlighted text"
         comments: "http://api.readmill.com/highlight/1/comments"
@@ -123,7 +144,7 @@ describe "utils", ->
         expect(annotation.text).to.equal("a")
         expect(annotation.commentUrl).to.equal("1")
         expect(annotation.page).to.equal("http://page")
-        expect(annotation.ranges).to.eql([])
+        expect(annotation.ranges).to.eql([xpath])
       promise.done.args[0][0]([{content: "a", uri: "1"}, {content: "b", uri: "2"}])
 
     it "should call reject immediately if parsing fails", ->
@@ -135,4 +156,4 @@ describe "utils", ->
       highlight.pre = "[]"
       target = utils.annotationFromHighlight(highlight, client)
       target.done (annotation) ->
-        expect(annotation.ranges).to.eql([])
+        expect(annotation.ranges).to.eql([xpath])
