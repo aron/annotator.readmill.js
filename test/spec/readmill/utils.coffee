@@ -71,6 +71,24 @@ describe "utils", ->
       parsed = utils.parseQueryString("dog,woof;cat,meow", ";", ",")
       expect(parsed).to.eql(dog: "woof", cat: "meow")
 
+  describe "", ->
+    nodes  = null
+    target = null
+
+    beforeEach ->
+      nodes = jQuery """
+      <div>this is the <span>start of the tex</span>t.<span> this is selected.</span> this<span> is</span> the end</div>
+      """
+      target = nodes.find("span:nth-child(2)")[0]
+
+    describe "#preText()", ->
+      it "should extract the text from nodes prior to the highlight", ->
+        expect(utils.preText(target)).to.equal("this is the start of the text.")
+
+    describe "#postText()", ->
+      it "should extract the text from nodes after to the highlight", ->
+        expect(utils.postText(target)).to.equal(" this is the end")
+
   describe "#highlightFromAnnotation()", ->
     beforeEach ->
       sinon.stub(utils, 'postText').returns('post')
