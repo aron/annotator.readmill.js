@@ -1,5 +1,5 @@
 (function() {
-  var $, Annotator, Delegator, Range, fn, functions, gettext, util, _Annotator, _gettext, _i, _j, _len, _len2, _ref, _t,
+  var $, Annotator, Delegator, LinkParser, Range, fn, functions, gettext, util, _Annotator, _gettext, _i, _j, _len, _len2, _ref, _t,
     __slice = Array.prototype.slice,
     __hasProp = Object.prototype.hasOwnProperty,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
@@ -284,6 +284,10 @@
         if (node.nodeType === 1) {
           it = node.childNodes[offset];
           node = it || node.childNodes[offset - 1];
+          if (node.nodeType === 1 && !node.firstChild) {
+            it = null;
+            node = node.previousSibling;
+          }
           while (node.nodeType !== 3) {
             node = node.firstChild;
           }
@@ -565,7 +569,9 @@
       wrapper: '<div class="annotator-wrapper"></div>'
     };
 
-    Annotator.prototype.options = {};
+    Annotator.prototype.options = {
+      readOnly: false
+    };
 
     Annotator.prototype.plugins = {};
 
@@ -599,7 +605,8 @@
       Annotator.__super__.constructor.apply(this, arguments);
       this.plugins = {};
       if (!Annotator.supported()) return this;
-      this._setupDocumentEvents()._setupWrapper()._setupViewer()._setupEditor();
+      if (!this.options.readOnly) this._setupDocumentEvents();
+      this._setupWrapper()._setupViewer()._setupEditor();
       _ref2 = this.html;
       for (name in _ref2) {
         src = _ref2[name];
@@ -617,7 +624,9 @@
 
     Annotator.prototype._setupViewer = function() {
       var _this = this;
-      this.viewer = new Annotator.Viewer();
+      this.viewer = new Annotator.Viewer({
+        readOnly: this.options.readOnly
+      });
       this.viewer.hide().on("edit", this.onEditAnnotation).on("delete", this.onDeleteAnnotation).addField({
         load: function(field, annotation) {
           if (annotation.text) {
@@ -659,20 +668,28 @@
     };
 
     Annotator.prototype.getSelectedRanges = function() {
-      var browserRange, i, ranges, selection;
+      var browserRange, i, normedRange, r, ranges, rangesToIgnore, selection, _k, _len3;
       selection = util.getGlobal().getSelection();
       ranges = [];
+      rangesToIgnore = [];
       if (!selection.isCollapsed) {
         ranges = (function() {
           var _ref2, _results;
           _results = [];
           for (i = 0, _ref2 = selection.rangeCount; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
-            browserRange = new Range.BrowserRange(selection.getRangeAt(i));
-            _results.push(browserRange.normalize().limit(this.wrapper[0]));
+            r = selection.getRangeAt(i);
+            browserRange = new Range.BrowserRange(r);
+            normedRange = browserRange.normalize().limit(this.wrapper[0]);
+            if (normedRange === null) rangesToIgnore.push(r);
+            _results.push(normedRange);
           }
           return _results;
         }).call(this);
         selection.removeAllRanges();
+      }
+      for (_k = 0, _len3 = rangesToIgnore.length; _k < _len3; _k++) {
+        r = rangesToIgnore[_k];
+        selection.addRange(r);
       }
       return $.grep(ranges, function(range) {
         if (range) selection.addRange(range.toRange());
@@ -752,7 +769,7 @@
         if (annList.length > 0) {
           return setTimeout((function() {
             return loader(annList);
-          }), 100);
+          }), 1);
         } else {
           return _this.publish('annotationsLoaded', [clone]);
         }
@@ -1025,7 +1042,7 @@
       focus: 'annotator-focus'
     };
 
-    Editor.prototype.html = "<div class=\"annotator-outer annotator-editor\">\n  <form class=\"annotator-widget\">\n    <ul class=\"annotator-listing\"></ul>\n    <div class=\"annotator-controls\">\n      <a href=\"#cancel\" class=\"annotator-cancel\">" + _t('Cancel') + "</a>\n<a href=\"#save\" class=\"annotator-save annotator-focus\">" + _t('Save') + "</a>\n    </div>\n    <span class=\"annotator-resize\"></span>\n  </form>\n</div>";
+    Editor.prototype.html = "<div class=\"annotator-outer annotator-editor\">\n  <form class=\"annotator-widget\">\n    <ul class=\"annotator-listing\"></ul>\n    <div class=\"annotator-controls\">\n      <a href=\"#cancel\" class=\"annotator-cancel\">" + _t('Cancel') + "</a>\n<a href=\"#save\" class=\"annotator-save annotator-focus\">" + _t('Save') + "</a>\n    </div>\n  </form>\n</div>";
 
     Editor.prototype.options = {};
 
@@ -1038,17 +1055,15 @@
       this.show = __bind(this.show, this);      Editor.__super__.constructor.call(this, $(this.html)[0], options);
       this.fields = [];
       this.annotation = {};
-      this.setupDraggables();
     }
 
     Editor.prototype.show = function(event) {
-      var focusPos;
       util.preventEventDefault(event);
       this.element.removeClass(this.classes.hide);
       this.element.find('.annotator-save').addClass(this.classes.focus);
       this.checkOrientation();
-      focusPos = this.isInvertedY() ? ':last' : ':first';
-      this.element.find(":input" + focusPos).focus();
+      this.element.find(":input:first").focus();
+      this.setupDraggables();
       return this.publish('show');
     };
 
@@ -1121,21 +1136,14 @@
     };
 
     Editor.prototype.checkOrientation = function() {
-      var controls, flipFields, list;
+      var controls, list;
       Editor.__super__.checkOrientation.apply(this, arguments);
       list = this.element.find('ul');
       controls = this.element.find('.annotator-controls');
-      flipFields = function() {
-        return list.children().each(function() {
-          return $(this).parent().prepend(this);
-        });
-      };
-      if (this.element.hasClass(this.classes.invert.y) && list.is(':first-child')) {
+      if (this.element.hasClass(this.classes.invert.y)) {
         controls.insertBefore(list);
-        flipFields();
       } else if (controls.is(':first-child')) {
         controls.insertAfter(list);
-        flipFields();
       }
       return this;
     };
@@ -1153,8 +1161,17 @@
     };
 
     Editor.prototype.setupDraggables = function() {
-      var classes, controls, editor, mousedown, onMousedown, onMousemove, onMouseup, resize, textarea, throttle,
+      var classes, controls, cornerItem, editor, mousedown, onMousedown, onMousemove, onMouseup, resize, textarea, throttle,
         _this = this;
+      this.element.find('.annotator-resize').remove();
+      if (this.element.hasClass(this.classes.invert.y)) {
+        cornerItem = this.element.find('.annotator-item:last');
+      } else {
+        cornerItem = this.element.find('.annotator-item:first');
+      }
+      if (cornerItem) {
+        $('<span class="annotator-resize"></span>').appendTo(cornerItem);
+      }
       mousedown = null;
       classes = this.classes;
       editor = this.element;
@@ -1235,7 +1252,11 @@
 
     Viewer.prototype.html = {
       element: "<div class=\"annotator-outer annotator-viewer\">\n  <ul class=\"annotator-widget annotator-listing\"></ul>\n</div>",
-      item: "<li class=\"annotator-annotation annotator-item\">\n  <span class=\"annotator-controls\">\n    <button class=\"annotator-edit\">Edit</button>\n    <button class=\"annotator-delete\">Delete</button>\n  </span>\n</li>"
+      item: "<li class=\"annotator-annotation annotator-item\">\n  <span class=\"annotator-controls\">\n    <a href=\"#\" title=\"View as webpage\" class=\"annotator-link\">View as webpage</a>\n    <button title=\"Edit\" class=\"annotator-edit\">Edit</button>\n    <button title=\"Delete\" class=\"annotator-delete\">Delete</button>\n  </span>\n</li>"
+    };
+
+    Viewer.prototype.options = {
+      readOnly: false
     };
 
     function Viewer(options) {
@@ -1272,7 +1293,7 @@
     };
 
     Viewer.prototype.load = function(annotations) {
-      var annotation, controller, controls, del, edit, element, field, item, list, _k, _l, _len3, _len4, _ref2, _ref3;
+      var annotation, controller, controls, del, edit, element, field, item, link, links, list, _k, _l, _len3, _len4, _ref2, _ref3;
       this.annotations = annotations || [];
       list = this.element.find('ul:first').empty();
       _ref2 = this.annotations;
@@ -1280,22 +1301,36 @@
         annotation = _ref2[_k];
         item = $(this.item).clone().appendTo(list).data('annotation', annotation);
         controls = item.find('.annotator-controls');
+        link = controls.find('.annotator-link');
         edit = controls.find('.annotator-edit');
         del = controls.find('.annotator-delete');
-        controller = {
-          showEdit: function() {
-            return edit.removeAttr('disabled');
-          },
-          hideEdit: function() {
-            return edit.attr('disabled', 'disabled');
-          },
-          showDelete: function() {
-            return del.removeAttr('disabled');
-          },
-          hideDelete: function() {
-            return del.attr('disabled', 'disabled');
-          }
-        };
+        links = new LinkParser(annotation.links || []).get('alternate', {
+          'type': 'text/html'
+        });
+        if (links.length === 0 || !(links[0].href != null)) {
+          link.remove();
+        } else {
+          link.attr('href', links[0].href);
+        }
+        if (this.options.readOnly) {
+          edit.remove();
+          del.remove();
+        } else {
+          controller = {
+            showEdit: function() {
+              return edit.removeAttr('disabled');
+            },
+            hideEdit: function() {
+              return edit.attr('disabled', 'disabled');
+            },
+            showDelete: function() {
+              return del.removeAttr('disabled');
+            },
+            hideDelete: function() {
+              return del.attr('disabled', 'disabled');
+            }
+          };
+        }
         _ref3 = this.fields;
         for (_l = 0, _len4 = _ref3.length; _l < _len4; _l++) {
           field = _ref3[_l];
@@ -1335,6 +1370,48 @@
     return Viewer;
 
   })(Annotator.Widget);
+
+  LinkParser = (function() {
+
+    function LinkParser(data) {
+      this.data = data;
+    }
+
+    LinkParser.prototype.get = function(rel, cond) {
+      var d, k, keys, match, v, _k, _len3, _ref2, _results;
+      if (cond == null) cond = {};
+      cond = $.extend({}, cond, {
+        rel: rel
+      });
+      keys = (function() {
+        var _results;
+        _results = [];
+        for (k in cond) {
+          if (!__hasProp.call(cond, k)) continue;
+          v = cond[k];
+          _results.push(k);
+        }
+        return _results;
+      })();
+      _ref2 = this.data;
+      _results = [];
+      for (_k = 0, _len3 = _ref2.length; _k < _len3; _k++) {
+        d = _ref2[_k];
+        match = keys.reduce((function(m, k) {
+          return m && (d[k] === cond[k]);
+        }), true);
+        if (match) {
+          _results.push(d);
+        } else {
+          continue;
+        }
+      }
+      return _results;
+    };
+
+    return LinkParser;
+
+  })();
 
   Annotator = Annotator || {};
 
