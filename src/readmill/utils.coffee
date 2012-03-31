@@ -72,6 +72,58 @@ Annotator.Readmill.utils = do ->
       obj[decode(key)] = decode value
     obj
 
+  # Takes a dom node and returns the text content of all previous nodes.
+  #
+  # highlight - A DOM node.
+  #
+  # Returns a string fo extracted text.
+  preText: (highlight) ->
+    collected = while highlight = highlight.previousSibling then highlight
+    jQuery(collected.reverse()).text()
+
+  # Takes a dom node and extracts the text from all successive siblings.
+  #
+  # Highlight - A DOM node.
+  #
+  # Returns a string.
+  postText: (highlight) ->
+    collected = while highlight = highlight.nextSibling then highlight
+    jQuery(collected).text()
+
+  # Public: Extract the locators object from an annotation.
+  #
+  # annotation - An annotation object to extract the locator from.
+  #
+  # Returns a object to be used in the locators key.
+  locatorsFromAnnotation: (annotation) ->
+    highlights = annotation.highlights
+
+    pre   = @preText(highlights[0])
+    post  = @postText(highlights[highlights.length - 1])
+
+    pre: pre
+    mid: annotation.quote
+    post: post
+    xpath: annotation.ranges[0]
+    file_id: annotation.page
+
+  # Nasty extraction method for getting the range start offset and end offset
+  # using just the pre and post strings. Leaving this here for one commit for
+  # posterity.
+  rangesFromLocator: (locator) ->
+    {pre, xpath} = locator
+    endOffset = if xpath.start == xpath.end then pre.length else 0
+    range = 
+      start: locator.xpath.start
+      startOffset: locator.pre.length
+      end: locator.xpath.end
+      endOffset: endOffset
+
+    sniffed = Annotator.Range.sniff(range)
+    browserRange = sniffed.normalize(jQuery('article div')[0]).toRange()
+    range.endOffset = jQuery(browserRange.endContainer).text().lastIndexOf(locator.post)
+    [range]
+
   # Public: Takes an annotation object and returns a highlight object
   # suitable for submission to the Readmill server.
   #
@@ -83,17 +135,14 @@ Annotator.Readmill.utils = do ->
   #     highlight = utils.highlightFromAnnotation(ann)
   #
   # Returns a highlight object.
-  highlightFromAnnotation: (annotation) ->
+  highlightFromAnnotation: (annotation, root) ->
+    locator = @locationFromAnnotation(annotation, root)
     # See: https://github.com/Readmill/API/wiki/Readings
     {
       id: annotation.id
       content: annotation.quote
       highlighted_at: undefined
-      locators:
-        annotator: JSON.stringify(
-          ranges: annotation.ranges
-          page: annotation.page
-        )
+      locators: locator
     }
 
   # Public: Takes an annotation object and returns an object suitable for
@@ -134,14 +183,14 @@ Annotator.Readmill.utils = do ->
   # Returns a jQuery.Deferred() promise.
   annotationFromHighlight: (highlight, client) ->
     # Try and extract annotation metadata from the locators object.
-    meta = try JSON.parse(highlight.locators.annotator) catch e then null
+    meta = (try ranges: @rangesFromLocator(highlight.locators) catch e then null)
     meta = (try ranges: JSON.parse(highlight.pre) catch e then null) unless meta
     deferred = new jQuery.Deferred()
 
     if meta
       annotation =
         id: highlight.id
-        page: meta.page
+        page: highlight.locators.file_id or meta.page
         quote: highlight.content
         text: ""
         ranges: meta.ranges
