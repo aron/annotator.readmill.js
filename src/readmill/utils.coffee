@@ -107,23 +107,6 @@ Annotator.Readmill.utils = do ->
     xpath: annotation.ranges[0]
     file_id: annotation.page
 
-  # Nasty extraction method for getting the range start offset and end offset
-  # using just the pre and post strings. Leaving this here for one commit for
-  # posterity.
-  rangesFromLocator: (locator) ->
-    {pre, xpath} = locator
-    endOffset = if xpath.start == xpath.end then pre.length else 0
-    range = 
-      start: locator.xpath.start
-      startOffset: locator.pre.length
-      end: locator.xpath.end
-      endOffset: endOffset
-
-    sniffed = Annotator.Range.sniff(range)
-    browserRange = sniffed.normalize(jQuery('article div')[0]).toRange()
-    range.endOffset = jQuery(browserRange.endContainer).text().lastIndexOf(locator.post)
-    [range]
-
   # Public: Takes an annotation object and returns a highlight object
   # suitable for submission to the Readmill server.
   #
@@ -135,8 +118,8 @@ Annotator.Readmill.utils = do ->
   #     highlight = utils.highlightFromAnnotation(ann)
   #
   # Returns a highlight object.
-  highlightFromAnnotation: (annotation, root) ->
-    locator = @locatorsFromAnnotation(annotation, root)
+  highlightFromAnnotation: (annotation) ->
+    locator = @locatorsFromAnnotation(annotation)
     # See: https://github.com/Readmill/API/wiki/Readings
     {
       id: annotation.id
@@ -183,8 +166,8 @@ Annotator.Readmill.utils = do ->
   # Returns a jQuery.Deferred() promise.
   annotationFromHighlight: (highlight, client) ->
     # Try and extract annotation metadata from the locators object.
-    meta = (try ranges: @rangesFromLocator(highlight.locators) catch e then null)
-    meta = (try ranges: JSON.parse(highlight.pre) catch e then null) unless meta
+    meta = (try ranges: [highlight.locators.xpath] catch e then null) if highlight.locators.xpath
+    meta = (try ranges: JSON.parse(highlight.pre) catch e then null)  unless meta
     deferred = new jQuery.Deferred()
 
     if meta
