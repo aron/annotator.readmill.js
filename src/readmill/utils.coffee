@@ -136,7 +136,7 @@ Annotator.Readmill.utils = do ->
   #
   # Returns a highlight object.
   highlightFromAnnotation: (annotation, root) ->
-    locator = @locationFromAnnotation(annotation, root)
+    locator = @locatorsFromAnnotation(annotation, root)
     # See: https://github.com/Readmill/API/wiki/Readings
     {
       id: annotation.id
